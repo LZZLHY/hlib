@@ -1,0 +1,11 @@
+{
+  "name": "entry",
+  "version": "1.0.0",
+  "description": "鸿蒙书馆 (HLib) · Z-Library 三方客户端 · 入口模块",
+  "main": "",
+  "author": "hlib",
+  "license": "MIT",
+  "dependencies": {
+    "libentry.so": "file:./src/main/cpp/types/libentry"
+  }
+}

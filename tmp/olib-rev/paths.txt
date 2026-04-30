@@ -1,0 +1,13 @@
+﻿/api
+/bookbook
+/book-detail
+/eapi/book
+/eapi/book/search
+/eapi/info/languages
+/eapi/user/book
+/eapi/user/book/downloaded
+/eapi/user/book/recommended
+/eapi/user/book/saved
+/eapi/user/login
+/eapi/user/profile
+/Users/Administrator/StudioProjects/zlibrary_mobile

@@ -1,0 +1,31 @@
+{
+  "color": [
+    { "name": "start_window_background", "value": "#121212" },
+
+    { "name": "brand_primary",       "value": "#1AA7A4" },
+    { "name": "brand_primary_light", "value": "#143A3A" },
+    { "name": "brand_primary_dark",  "value": "#0E7C7B" },
+
+    { "name": "bg_canvas",   "value": "#121212" },
+    { "name": "surface",     "value": "#1E1E1E" },
+    { "name": "surface_alt", "value": "#2A2A2A" },
+
+    { "name": "text_primary",   "value": "#F5F5F5" },
+    { "name": "text_secondary", "value": "#B0B6BC" },
+    { "name": "text_tertiary",  "value": "#7A828B" },
+    { "name": "text_on_primary","value": "#FFFFFF" },
+
+    { "name": "accent_orange", "value": "#FFB347" },
+    { "name": "success_teal",  "value": "#3DDDC8" },
+    { "name": "warning",       "value": "#FFC97A" },
+    { "name": "error",         "value": "#FF5C6E" },
+
+    { "name": "progress_green",  "value": "#3DDDC8" },
+    { "name": "progress_yellow", "value": "#FFC97A" },
+    { "name": "progress_orange", "value": "#FFB347" },
+
+    { "name": "divider",       "value": "#2C2F33" },
+    { "name": "shadow_card",   "value": "#33000000" },
+    { "name": "scrim",         "value": "#A6000000" }
+  ]
+}
