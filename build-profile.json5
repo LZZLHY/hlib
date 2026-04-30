@@ -1,0 +1,57 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "REDACTED",
+          "profile": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.p12",
+          "storePassword": "REDACTED"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.1.0(23)",
+        "compatibleSdkVersion": "6.1.0(23)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "nativeCompiler": "BiSheng",
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

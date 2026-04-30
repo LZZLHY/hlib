@@ -1,0 +1,32 @@
+{
+  "float": [
+    { "name": "page_text_font_size", "value": "50fp" },
+
+    { "name": "fs_caption",  "value": "11fp" },
+    { "name": "fs_overline", "value": "10fp" },
+    { "name": "fs_body_sm",  "value": "12fp" },
+    { "name": "fs_body",     "value": "14fp" },
+    { "name": "fs_body_lg",  "value": "16fp" },
+    { "name": "fs_title_sm", "value": "15fp" },
+    { "name": "fs_title",    "value": "18fp" },
+    { "name": "fs_title_lg", "value": "20fp" },
+    { "name": "fs_headline", "value": "24fp" },
+    { "name": "fs_display",  "value": "28fp" },
+
+    { "name": "radius_sm",  "value": "8vp" },
+    { "name": "radius_md",  "value": "12vp" },
+    { "name": "radius_lg",  "value": "16vp" },
+    { "name": "radius_xl",  "value": "20vp" },
+    { "name": "radius_pill","value": "30vp" },
+
+    { "name": "space_2",  "value": "2vp" },
+    { "name": "space_4",  "value": "4vp" },
+    { "name": "space_6",  "value": "6vp" },
+    { "name": "space_8",  "value": "8vp" },
+    { "name": "space_12", "value": "12vp" },
+    { "name": "space_16", "value": "16vp" },
+    { "name": "space_20", "value": "20vp" },
+    { "name": "space_24", "value": "24vp" },
+    { "name": "space_32", "value": "32vp" }
+  ]
+}
