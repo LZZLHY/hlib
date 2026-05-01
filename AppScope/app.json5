@@ -1,7 +1,7 @@
 {
   "app": {
     "bundleName": "com.hlib.app",
-    "vendor": "example",
+    "vendor": "hlib",
     "versionCode": 1000000,
     "versionName": "1.0.0",
     "buildVersion": "1",

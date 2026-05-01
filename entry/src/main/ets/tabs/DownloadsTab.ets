@@ -9,17 +9,21 @@
  * 状态：AppStorage[DOWNLOAD_TASKS] / [DOWNLOAD_HISTORY]
  */
 
-import { common } from '@kit.AbilityKit';
+import { common, Want, wantConstant } from '@kit.AbilityKit';
+import { BusinessError } from '@kit.BasicServicesKit';
+import { fileUri } from '@kit.CoreFileKit';
 import { promptAction } from '@kit.ArkUI';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
-import { AppStorageKeys } from '../storage/AppStorageKeys';
+import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
+import { Layout } from '../utils/Layout';
 import { DownloadTask, DownloadStatus } from '../model/DownloadTask';
 import { DownloadHistoryItem } from '../storage/DownloadHistoryStore';
 import { DownloadVM } from '../viewmodel/DownloadVM';
 import { BookCoverImage } from '../components/BookCoverImage';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorHelper } from '../utils/ErrorHelper';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'DownloadsTab';
@@ -27,6 +31,7 @@ const TAG: string = 'DownloadsTab';
 @Component
 export struct DownloadsTab {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.DOWNLOAD_TASKS) private active: DownloadTask[] = [];
   @StorageProp(AppStorageKeys.DOWNLOAD_HISTORY) private history: DownloadHistoryItem[] = [];
 
@@ -49,22 +54,22 @@ export struct DownloadsTab {
 
   private onCancel(t: DownloadTask): void {
     this.getUIContext().showAlertDialog({
-      title: '取消下载？',
-      message: `将取消《${t.title}》的下载任务。`,
+      title: $r('app.string.downloads_cancel_title'),
+      message: I18n.format('downloads_cancel_msg_fmt', [t.title]),
       alignment: DialogAlignment.Center,
       primaryButton: {
-        value: '取消下载',
-        fontColor: '#E53935',
+        value: $r('app.string.downloads_cancel_confirm'),
+        fontColor: AppColors.error,
         action: (): void => {
           DownloadVM.cancel(t.bookId).catch((e: Error): void => {
             Logger.w(TAG, `cancel failed: ${e.message}`);
-            DownloadsTab.toast(ErrorHelper.describe(e as Object, '取消下载'));
+            DownloadsTab.toast(ErrorHelper.describe(e as Object, 'ctx_cancel_dl'));
           });
         },
       },
       secondaryButton: {
-        value: '不取消',
-        fontColor: '#666666',
+        value: $r('app.string.downloads_cancel_keep'),
+        fontColor: AppColors.textSecondary,
         action: (): void => {},
       },
     });
@@ -74,7 +79,7 @@ export struct DownloadsTab {
     const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     DownloadVM.openFile(item, ctx).catch((e: Error): void => {
       Logger.w(TAG, `openFile failed: ${e.message}`);
-      DownloadsTab.toast(ErrorHelper.describe(e as Object, '打开文件'));
+      DownloadsTab.toast(ErrorHelper.describe(e as Object, 'ctx_open_file'));
     });
   }
 
@@ -82,7 +87,37 @@ export struct DownloadsTab {
     const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
     DownloadVM.shareFile(item, ctx).catch((e: Error): void => {
       Logger.w(TAG, `shareFile failed: ${e.message}`);
-      DownloadsTab.toast(ErrorHelper.describe(e as Object, '分享文件'));
+      DownloadsTab.toast(ErrorHelper.describe(e as Object, 'ctx_share_file'));
+    });
+  }
+
+  /** 跳转系统文件管理器，打开下载输出目录。 */
+  private onOpenDownloadFolder(): void {
+    const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    if (ctx === undefined || ctx === null) {
+      DownloadsTab.toast(I18n.ts('downloads_open_folder_failed'));
+      return;
+    }
+    // DOWNLOAD_PATH 可能是 'cache' / 'default' / 公共夹 URI / ''
+    const cfg: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
+    let folder: string;
+    if (cfg === 'cache') {
+      folder = `${ctx.cacheDir}/Downloads`;
+    } else if (cfg !== undefined && cfg.length > 0 && cfg !== 'default') {
+      folder = cfg;
+    } else {
+      folder = `${ctx.filesDir}/Downloads`;
+    }
+    const uri: string = folder.startsWith('file://') ? folder : fileUri.getUriFromPath(folder);
+    const want: Want = {
+      action: 'ohos.want.action.viewData',
+      uri: uri,
+      type: 'resource/directory',
+      flags: wantConstant.Flags.FLAG_AUTH_READ_URI_PERMISSION,
+    };
+    ctx.startAbility(want).catch((e: BusinessError): void => {
+      Logger.w(TAG, `openFolder failed: code=${e.code} msg=${e.message}`);
+      DownloadsTab.toast(I18n.ts('downloads_open_folder_failed'));
     });
   }
 
@@ -93,17 +128,17 @@ export struct DownloadsTab {
       alignment: DialogAlignment.Center,
       primaryButton: {
         value: $r('app.string.common_delete'),
-        fontColor: '#E53935',
+        fontColor: AppColors.error,
         action: (): void => {
           DownloadVM.removeHistory(item.bookId).catch((e: Error): void => {
             Logger.w(TAG, `removeHistory failed: ${e.message}`);
-            DownloadsTab.toast(ErrorHelper.describe(e as Object, '删除记录'));
+            DownloadsTab.toast(ErrorHelper.describe(e as Object, 'ctx_remove_history'));
           });
         },
       },
       secondaryButton: {
         value: $r('app.string.common_cancel'),
-        fontColor: '#666666',
+        fontColor: AppColors.textSecondary,
         action: (): void => {},
       },
     });
@@ -128,9 +163,23 @@ export struct DownloadsTab {
         .fontWeight(FontWeight.Bold)
         .fontColor(AppColors.textPrimary)
         .layoutWeight(1);
+
+      Button() {
+        Row({ space: 4 }) {
+          Image($r('app.media.ic_open_file')).width(14).height(14);
+          Text($r('app.string.settings_open_download_folder'))
+            .fontSize(AppFontSize.bodySm)
+            .fontColor(AppColors.brandPrimary);
+        }
+      }
+      .height(32)
+      .padding({ left: 12, right: 12 })
+      .backgroundColor(AppColors.brandPrimaryLight)
+      .borderRadius(AppRadius.pill)
+      .onClick(() => this.onOpenDownloadFolder());
     }
     .width('100%')
-    .padding({ left: AppSpace.s24, right: AppSpace.s24, top: AppSpace.s16, bottom: AppSpace.s8 });
+    .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s16, bottom: AppSpace.s8 });
   }
 
   @Builder
@@ -354,7 +403,7 @@ export struct DownloadsTab {
       }
       .width('100%')
       .height('100%')
-      .padding({ left: AppSpace.s24, right: AppSpace.s24, top: AppSpace.s8 })
+      .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s8 })
       .edgeEffect(EdgeEffect.None)
       .scrollBar(BarState.Off);
     }
@@ -380,7 +429,7 @@ export struct DownloadsTab {
       }
       .width('100%')
       .height('100%')
-      .padding({ left: AppSpace.s24, right: AppSpace.s24, top: AppSpace.s8 })
+      .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s8 })
       .edgeEffect(EdgeEffect.None)
       .scrollBar(BarState.Off);
     }
@@ -419,12 +468,12 @@ export struct DownloadsTab {
   // ─── 静态工具 ──────────────────────────────────────
 
   private static statusLabel(s: DownloadStatus): string {
-    if (s === 'pending') return '等待中';
-    if (s === 'downloading') return '下载中';
-    if (s === 'paused') return '已暂停';
-    if (s === 'completed') return '已完成';
-    if (s === 'failed') return '下载失败';
-    return '已取消';
+    if (s === 'pending') return I18n.ts('downloads_status_pending');
+    if (s === 'downloading') return I18n.ts('downloads_status_downloading');
+    if (s === 'paused') return I18n.ts('downloads_status_paused');
+    if (s === 'completed') return I18n.ts('downloads_status_completed');
+    if (s === 'failed') return I18n.ts('downloads_status_failed');
+    return I18n.ts('downloads_status_canceled');
   }
 
   private static statusColor(s: DownloadStatus): Resource {

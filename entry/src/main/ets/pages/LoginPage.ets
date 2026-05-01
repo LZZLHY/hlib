@@ -23,6 +23,7 @@ import { CustomDomainDialog } from '../components/CustomDomainDialog';
 import { CfBlockedDialog } from '../components/CfBlockedDialog';
 import { AppRouter, Routes } from '../utils/AppRouter';
 import { QrLoginParser, QrCredential } from '../utils/QrLoginParser';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'LoginPage';
@@ -89,50 +90,48 @@ export struct LoginPage {
     if (this.isLoading) {
       return;
     }
-    // 守卫：部分设备无扫码 syscap
-    if (!canIUse('SystemCapability.Multimedia.Scan.Core') ||
-        !canIUse('SystemCapability.Multimedia.Scan.ScanBarcode')) {
-      LoginPage.toast('当前设备不支持扫码', 1800);
-      return;
+    // 正向守卫：ArkTS 编译期对单层 if(canIUse(X)) 识别更稳；scanCore 与 scanBarcode 同属 Scan Kit，单 syscap 即可
+    if (canIUse('SystemCapability.Multimedia.Scan.ScanBarcode')) {
+      const ctx = this.getUIContext().getHostContext();
+      if (ctx === null || ctx === undefined) {
+        LoginPage.toast(I18n.ts('login_ctx_not_ready'), 1500);
+        return;
+      }
+      const options: scanBarcode.ScanOptions = {
+        scanTypes: [scanCore.ScanType.ALL],
+        enableMultiMode: true,
+        enableAlbum: true,
+      };
+      try {
+        scanBarcode.startScanForResult(ctx, options)
+          .then((result: scanBarcode.ScanResult): void => {
+            // 内联读取 originalValue，使其位于同一 canIUse 守卫块内，消除 syscap 警告
+            let value: string = '';
+            if (result !== undefined && result !== null) {
+              const v: string | undefined = result.originalValue;
+              value = v !== undefined ? v : '';
+            }
+            this.handleScanResult(value);
+          })
+          .catch((err: BusinessError): void => {
+            if (err && err.code !== undefined && err.code !== 0) {
+              Logger.w(TAG, `scan canceled or failed: code=${err.code} msg=${err.message}`);
+            }
+          });
+      } catch (e) {
+        const err: BusinessError = e as BusinessError;
+        Logger.w(TAG, `startScanForResult failed: code=${err.code} msg=${err.message}`);
+        LoginPage.toast(I18n.ts('login_qr_service_unavailable'), 1800);
+      }
+    } else {
+      LoginPage.toast(I18n.ts('login_qr_unsupported'), 1800);
     }
-    const ctx = this.getUIContext().getHostContext();
-    if (ctx === null || ctx === undefined) {
-      LoginPage.toast('上下文未就绪', 1500);
-      return;
-    }
-    const options: scanBarcode.ScanOptions = {
-      scanTypes: [scanCore.ScanType.ALL],
-      enableMultiMode: true,
-      enableAlbum: true,
-    };
-    try {
-      scanBarcode.startScanForResult(ctx, options)
-        .then((result: scanBarcode.ScanResult): void => {
-          const value: string = LoginPage.readScanValue(result);
-          this.handleScanResult(value);
-        })
-        .catch((err: BusinessError): void => {
-          if (err && err.code !== undefined && err.code !== 0) {
-            Logger.w(TAG, `scan canceled or failed: code=${err.code} msg=${err.message}`);
-          }
-        });
-    } catch (e) {
-      const err: BusinessError = e as BusinessError;
-      Logger.w(TAG, `startScanForResult failed: code=${err.code} msg=${err.message}`);
-      LoginPage.toast('扫码服务不可用', 1800);
-    }
-  }
-
-  private static readScanValue(result: scanBarcode.ScanResult): string {
-    if (result === undefined || result === null) return '';
-    const v: string | undefined = result.originalValue;
-    return v !== undefined ? v : '';
   }
 
   private handleScanResult(raw: string): void {
     const cred: QrCredential | null = QrLoginParser.parse(raw);
     if (cred === null) {
-      LoginPage.toast('二维码格式不识别', 2000);
+      LoginPage.toast(I18n.ts('login_qr_invalid'), 2000);
       return;
     }
     // 切到 token 模式 + 填入 + 自动提交
@@ -148,7 +147,7 @@ export struct LoginPage {
   private applyDomain(d: string): void {
     AppStorage.setOrCreate<string>(AppStorageKeys.DOMAIN, d);
     HttpClient.instance.setDomain(d);
-    LoginPage.toast(`已切换到 ${d}`, 1500);
+    LoginPage.toast(I18n.format('settings_dom_switched_fmt', [d]), 1500);
   }
 
   private static toast(msg: string, duration: number = 2000): void {
@@ -188,7 +187,7 @@ export struct LoginPage {
       this.cfController.open();
       return;
     }
-    const msg: string = ErrorHelper.describe(err, '登录');
+    const msg: string = ErrorHelper.describe(err, 'ctx_login');
     Logger.w(TAG, `login err: ${(err as Error).message}`);
     LoginPage.toast(msg, 2200);
   }
@@ -198,7 +197,7 @@ export struct LoginPage {
     if (this.isTokenMode) {
       this.tokenError = '';
       if (this.userId.trim().length === 0 || this.userKey.trim().length === 0) {
-        this.tokenError = '请输入 userId 与 userKey';
+        this.tokenError = I18n.ts('login_user_id_required');
         ok = false;
       }
     } else {
@@ -206,17 +205,17 @@ export struct LoginPage {
       this.passwordError = '';
       const e: string = this.email.trim();
       if (e.length === 0) {
-        this.emailError = '请输入邮箱';
+        this.emailError = I18n.ts('login_email_blank');
         ok = false;
       } else if (!EMAIL_RE.test(e)) {
-        this.emailError = '邮箱格式不正确';
+        this.emailError = I18n.ts('login_email_format');
         ok = false;
       }
       if (this.password.length === 0) {
-        this.passwordError = '请输入密码';
+        this.passwordError = I18n.ts('login_password_blank');
         ok = false;
       } else if (this.password.length < 6) {
-        this.passwordError = '密码至少 6 位';
+        this.passwordError = I18n.ts('login_password_min');
         ok = false;
       }
     }
@@ -301,7 +300,7 @@ export struct LoginPage {
           .fontSize(AppFontSize.bodySm)
           .fontColor(AppColors.textSecondary)
           .alignSelf(ItemAlign.Start);
-        TextInput({ placeholder: 'name@example.com', text: this.email })
+        TextInput({ placeholder: $r('app.string.login_email_placeholder'), text: this.email })
           .type(InputType.Email)
           .height(48)
           .borderRadius(AppRadius.md)
@@ -331,7 +330,7 @@ export struct LoginPage {
           .fontColor(AppColors.textSecondary)
           .alignSelf(ItemAlign.Start);
         Stack({ alignContent: Alignment.End }) {
-          TextInput({ placeholder: '••••••••', text: this.password })
+          TextInput({ placeholder: $r('app.string.login_password_placeholder'), text: this.password })
             .type(this.showPassword ? InputType.Normal : InputType.Password)
             .height(48)
             .borderRadius(AppRadius.md)
@@ -462,7 +461,7 @@ export struct LoginPage {
               // 扫一扫
               Row({ space: 6 }) {
                 Image($r('app.media.ic_scan_qr')).width(16).height(16);
-                Text('扫码登录')
+                Text($r('app.string.login_qr_btn'))
                   .fontSize(AppFontSize.bodySm)
                   .fontColor(AppColors.brandPrimary);
               }
@@ -475,8 +474,8 @@ export struct LoginPage {
               Blank().layoutWeight(1);
 
               Text(this.isTokenMode
-                ? '使用邮箱密码登录'
-                : '使用 Token 登录?')
+                ? $r('app.string.login_switch_to_email')
+                : $r('app.string.login_switch_to_token'))
                 .fontSize(AppFontSize.bodySm)
                 .fontColor(AppColors.brandPrimary)
                 .onClick(() => {

@@ -1,14 +1,17 @@
 import { AbilityConstant, ConfigurationConstant, errorManager, UIAbility, Want } from '@kit.AbilityKit';
+import { bundleManager } from '@kit.AbilityKit';
 import { display, window } from '@kit.ArkUI';
 import { i18n } from '@kit.LocalizationKit';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { SecretStore } from '../utils/SecretStore';
 import { PreferencesStore } from '../storage/PreferencesStore';
 import { AuthStore } from '../storage/AuthStore';
 import { ErrorReportStore } from '../storage/ErrorReportStore';
-import { AppStorageKeys, DEFAULT_DOMAIN, ThemeMode } from '../storage/AppStorageKeys';
+import { AppStorageKeys, DEFAULT_DOMAIN, ThemeMode, NavStyle, Breakpoint } from '../storage/AppStorageKeys';
 import { HttpClient } from '../api/HttpClient';
 import { DomainManifest } from '../api/DomainManifest';
+import { Layout } from '../utils/Layout';
 
 const TAG: string = 'EntryAbility';
 
@@ -19,6 +22,9 @@ export default class EntryAbility extends UIAbility {
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     Logger.i(TAG, 'onCreate');
     try {
+      // 0) 给 I18n 工具注入 ApplicationContext，让 ErrorHelper / 各页 toast 能 sync 取本地化字符串
+      I18n.bindContext(this.context);
+
       // 1) 初始化偏好存储（必须最先完成，后续 Store 都依赖它）
       await PreferencesStore.init(this.context);
       await ErrorReportStore.init();
@@ -53,6 +59,8 @@ export default class EntryAbility extends UIAbility {
       PersistentStorage.persistProp<ThemeMode>(AppStorageKeys.THEME_MODE, 'system');
       PersistentStorage.persistProp<string>(AppStorageKeys.LOCALE, '');
       PersistentStorage.persistProp<string>(AppStorageKeys.DOWNLOAD_PATH, '');
+      PersistentStorage.persistProp<NavStyle>(AppStorageKeys.NAV_STYLE, 'auto');
+      PersistentStorage.persistProp<string>(AppStorageKeys.PRIVACY_AGREED_VERSION, '');
 
       // 3) 应用偏好到 HttpClient
       const savedDomain = AppStorage.get<string>(AppStorageKeys.DOMAIN) ?? DEFAULT_DOMAIN;
@@ -90,6 +98,21 @@ export default class EntryAbility extends UIAbility {
         i18n.System.setAppPreferredLanguage(savedLocale);
       } catch (e) {
         Logger.w(TAG, `setAppPreferredLanguage failed: ${(e as Error).message}`);
+      }
+
+      // 7) 读取应用版本号写入 AppStorage（关于页 / 启动屏订阅，避免硬编码字面量）
+      try {
+        const info: bundleManager.BundleInfo = await bundleManager.getBundleInfoForSelf(
+          bundleManager.BundleFlag.GET_BUNDLE_INFO_DEFAULT,
+        );
+        const ver: string = info.versionName !== undefined && info.versionName.length > 0
+          ? info.versionName
+          : '1.0.0';
+        AppStorage.setOrCreate<string>(AppStorageKeys.APP_VERSION, ver);
+        Logger.i(TAG, `app version: ${ver}`);
+      } catch (e) {
+        Logger.w(TAG, `read versionName failed: ${(e as Error).message}`);
+        AppStorage.setOrCreate<string>(AppStorageKeys.APP_VERSION, '1.0.0');
       }
     } catch (e) {
       Logger.e(TAG, 'onCreate init failed', e as Error);
@@ -135,8 +158,28 @@ export default class EntryAbility extends UIAbility {
         const density: number = display.getDefaultDisplaySync().densityPixels;
         AppStorage.setOrCreate<number>('statusBarHeight', sysArea.topRect.height / density);
         AppStorage.setOrCreate<number>('navBarHeight', sysArea.bottomRect.height / density);
+
+        // 初始屏宽 + 断点写入；后续由 windowSizeChange 监听更新
+        const props: window.WindowProperties = mainWindow.getWindowProperties();
+        const widthVp: number = props.windowRect.width / density;
+        const bp: Breakpoint = Layout.breakpointOf(widthVp);
+        AppStorage.setOrCreate<number>(AppStorageKeys.SCREEN_WIDTH_VP, widthVp);
+        AppStorage.setOrCreate<Breakpoint>(AppStorageKeys.BREAKPOINT, bp);
+        Logger.i(TAG, `initial layout: ${widthVp.toFixed(0)}vp -> ${bp}`);
+
+        // 监听窗口尺寸变化（折叠展开/分屏切换/旋转），实时刷新断点
+        mainWindow.on('windowSizeChange', (size: window.Size): void => {
+          try {
+            const w: number = size.width / density;
+            const b: Breakpoint = Layout.breakpointOf(w);
+            AppStorage.setOrCreate<number>(AppStorageKeys.SCREEN_WIDTH_VP, w);
+            AppStorage.setOrCreate<Breakpoint>(AppStorageKeys.BREAKPOINT, b);
+          } catch (sze) {
+            Logger.w(TAG, `windowSizeChange handler failed: ${(sze as Error).message}`);
+          }
+        });
       } catch (ex) {
-        Logger.w(TAG, `getWindowAvoidArea failed: ${(ex as Error).message}`);
+        Logger.w(TAG, `getWindowAvoidArea / size init failed: ${(ex as Error).message}`);
       }
     } catch (e) {
       Logger.w(TAG, `setWindowLayoutFullScreen failed: ${(e as Error).message}`);

@@ -36,6 +36,7 @@ import { HttpClient } from '../api/HttpClient';
 import { DOMAINS } from '../api/Domains';
 import { DomainTestResult } from '../model/DomainTestResult';
 import { UrlUtils } from '../utils/UrlUtils';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'DownloadVM';
@@ -484,7 +485,7 @@ export class DownloadVM {
   static async openFile(item: DownloadHistoryItem, ctx: common.UIAbilityContext): Promise<void> {
     const exists: boolean = await DownloadVM.fileExists(item.filePath);
     if (!exists) {
-      throw new Error('文件不存在，可能已被删除');
+      throw new Error(I18n.ts('downloads_file_missing'));
     }
     const uri: string = fileUri.getUriFromPath(item.filePath);
     const mime: string = DownloadVM.mimeOf(item.extension !== undefined ? item.extension : '');
@@ -502,9 +503,9 @@ export class DownloadVM {
       Logger.w(TAG, `openFile startAbility failed: code=${be.code}, msg=${be.message}`);
       // 16000001 = 无匹配 Ability；16000002 = 内部错误
       if (be.code === 16000001) {
-        throw new Error('未找到可以打开此文件类型的应用');
+        throw new Error(I18n.ts('downloads_open_no_app'));
       }
-      throw new Error(`打开失败: ${be.message}`);
+      throw new Error(I18n.format('downloads_open_failed_fmt', [be.message]));
     }
   }
 
@@ -515,7 +516,7 @@ export class DownloadVM {
   static async shareFile(item: DownloadHistoryItem, ctx: common.UIAbilityContext): Promise<void> {
     const exists: boolean = await DownloadVM.fileExists(item.filePath);
     if (!exists) {
-      throw new Error('文件不存在，可能已被删除');
+      throw new Error(I18n.ts('downloads_file_missing'));
     }
     const uri: string = fileUri.getUriFromPath(item.filePath);
     const utdType: string = DownloadVM.utdOf(item.extension !== undefined ? item.extension : '');
@@ -532,7 +533,7 @@ export class DownloadVM {
       });
     } catch (e) {
       Logger.w(TAG, `shareFile show panel failed: ${(e as Error).message}`);
-      throw new Error(`分享失败: ${(e as Error).message}`);
+      throw new Error(I18n.format('downloads_share_failed_fmt', [(e as Error).message]));
     }
   }
 

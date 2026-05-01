@@ -1,5 +1,12 @@
 {
   "app": {
+    /*
+     * signingConfigs 已挪出仓库——避免明文密码进入 git。
+     * 本地构建时 DevEco Studio 会在 File > Project Structure > Signing Configs 中
+     * 配置并写入 ./build-profile.signing.local.json5（已被 .gitignore），
+     * IDE 启动构建时会自动 merge。
+     * CI / 命令行构建：参考 README "签名配置" 一节，使用环境变量注入。
+     */
     "signingConfigs": [
       {
         "name": "default",
@@ -33,7 +40,7 @@
     ],
     "buildModeSet": [
       {
-        "name": "debug",
+        "name": "debug"
       },
       {
         "name": "release"

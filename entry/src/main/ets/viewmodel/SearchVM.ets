@@ -11,6 +11,7 @@
 import { ZLibraryClient, SearchOptions, SearchPage } from '../api/ZLibraryClient';
 import { HttpStatusError } from '../api/ApiTypes';
 import { ErrorHelper } from '../utils/ErrorHelper';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'SearchVM';
@@ -32,9 +33,9 @@ export class SearchVM {
     if (err instanceof HttpStatusError) {
       const httpErr: HttpStatusError = err as HttpStatusError;
       if (httpErr.statusCode === 400) {
-        return '搜索参数无效，请尝试更换关键词或筛选条件';
+        return I18n.ts('err_search_400');
       }
     }
-    return ErrorHelper.describe(err, '搜索');
+    return ErrorHelper.describe(err, 'ctx_search');
   }
 }

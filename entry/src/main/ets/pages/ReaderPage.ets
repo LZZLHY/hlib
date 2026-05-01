@@ -19,7 +19,11 @@ import { AppFontSize, AppRadius } from '../theme/AppTextStyles';
 import { HttpClient } from '../api/HttpClient';
 import { ReadingPositionStore } from '../storage/ReadingPositionStore';
 import { AppRouter, ReaderParams } from '../utils/AppRouter';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
+
+/** Web 内点击空白处时注入的特殊导航 URL；在 onLoadIntercept 中捕获后切换全屏。 */
+const FS_TOGGLE_URL: string = 'hlib://toggle-fullscreen';
 
 const TAG: string = 'ReaderPage';
 
@@ -48,6 +52,9 @@ export struct ReaderPage {
   /** 加载超时计时器 */
   private loadTimeoutId: number = -1;
   private static readonly LOAD_TIMEOUT_MS: number = 20000;
+
+  /** 空白处点击绑定的 JS，只在首次 onPageEnd 注入一次；用 webReady 单例布尔减少必要以外的 runJS。 */
+  private fsBindInstalled: boolean = false;
 
   private webController: webview.WebviewController = new webview.WebviewController();
 
@@ -121,6 +128,29 @@ export struct ReaderPage {
     }
   }
 
+  /**
+   * 往 Web 注入空白处点击→切换全屏的脚本。
+   *   - 点到 <a>/<button>/<input>/可编辑元素内部 不触发，避免阻挖 web 交互；
+   *   - 触发时跳 `hlib://toggle-fullscreen`，由 onLoadIntercept 捕获。
+   */
+  private installFullscreenToggle(): void {
+    if (!this.webReady || this.fsBindInstalled) {
+      return;
+    }
+    const js: string =
+      `(function(){if(window.__hlibFsInstalled)return;window.__hlibFsInstalled=true;` +
+      `document.addEventListener('click',function(e){var t=e.target;` +
+      `while(t&&t!==document.body){var g=t.tagName;` +
+      `if(g==='A'||g==='BUTTON'||g==='INPUT'||g==='SELECT'||g==='TEXTAREA'||t.isContentEditable)return;` +
+      `t=t.parentNode;}location.href='${FS_TOGGLE_URL}';},true);})();`;
+    try {
+      this.webController.runJavaScript(js);
+      this.fsBindInstalled = true;
+    } catch (e) {
+      Logger.w(TAG, `installFullscreenToggle failed: ${(e as Error).message}`);
+    }
+  }
+
   private toggleFontMenu(): void {
     this.fontMenuOpen = !this.fontMenuOpen;
   }
@@ -167,7 +197,7 @@ export struct ReaderPage {
     this.loadTimeoutId = setTimeout((): void => {
       if (this.progress < 100 && this.errorMsg.length === 0) {
         Logger.w(TAG, `load timeout (${ReaderPage.LOAD_TIMEOUT_MS}ms), progress=${this.progress}, url=${this.url}`);
-        this.errorMsg = '加载超时，请检查网络或尝试其他镜像站';
+        this.errorMsg = I18n.ts('reader_load_timeout');
       }
     }, ReaderPage.LOAD_TIMEOUT_MS);
   }
@@ -316,7 +346,7 @@ export struct ReaderPage {
   private fontMenu() {
     Column({ space: 8 }) {
       Row() {
-        Text('字体大小')
+        Text($r('app.string.reader_font_size'))
           .fontSize(AppFontSize.bodySm)
           .fontColor(AppColors.textSecondary)
           .layoutWeight(1);
@@ -340,7 +370,7 @@ export struct ReaderPage {
   private webView() {
     if (this.url.length === 0) {
       Column() {
-        Text('未提供阅读链接')
+        Text($r('app.string.reader_no_url'))
           .fontSize(AppFontSize.body)
           .fontColor(AppColors.textSecondary);
       }
@@ -404,12 +434,13 @@ export struct ReaderPage {
             this.applyFontInjection();
           }
           this.restoreScroll();
+          this.installFullscreenToggle();
         })
         .onErrorReceive((event: OnErrorReceiveEvent) => {
           this.clearLoadTimeout();
           const desc: string = event.error !== undefined ? event.error.getErrorInfo() : 'unknown';
           Logger.w(TAG, `web error: ${desc}`);
-          this.errorMsg = `加载失败: ${desc}`;
+          this.errorMsg = I18n.format('reader_load_failed_fmt', [desc]);
         })
         .onSslErrorEventReceive((event: OnSslErrorEventReceiveEvent) => {
           // Z-Library reader 子域经常存在证书不匹配，信任并继续加载
@@ -425,8 +456,21 @@ export struct ReaderPage {
           if (code >= 400) {
             this.clearLoadTimeout();
             Logger.w(TAG, `http error ${code} on reader`);
-            this.errorMsg = `HTTP ${code}：服务器拒绝请求，请尝试其他镜像站`;
+            this.errorMsg = I18n.format('reader_http_error_fmt', [code]);
           }
+        })
+        .onLoadIntercept((event: OnLoadInterceptEvent): boolean => {
+          // 拦截注入脚本打向的 hlib://toggle-fullscreen，用于切顶栏显隐
+          try {
+            const u: string = event.data.getRequestUrl();
+            if (u === FS_TOGGLE_URL) {
+              this.toggleFullscreen();
+              return true;
+            }
+          } catch (e) {
+            Logger.w(TAG, `onLoadIntercept failed: ${(e as Error).message}`);
+          }
+          return false;
         });
     }
   }

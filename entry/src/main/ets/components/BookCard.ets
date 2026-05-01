@@ -12,6 +12,7 @@ import { Book } from '../model/Book';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
 import { BookCoverImage } from './BookCoverImage';
+import { I18n } from '../utils/I18n';
 
 @Component
 export struct VerticalBookCard {
@@ -28,7 +29,7 @@ export struct VerticalBookCard {
         radius: 8,
       });
 
-      Text(this.book.title.length > 0 ? this.book.title : '未知书名')
+      Text(this.book.title.length > 0 ? this.book.title : I18n.ts('book_unknown_title'))
         .fontSize(AppFontSize.bodySm)
         .fontColor(AppColors.textPrimary)
         .fontWeight(FontWeight.Medium)
@@ -87,7 +88,7 @@ export struct HorizontalBookCard {
       });
 
       Column({ space: 6 }) {
-        Text(this.book.title.length > 0 ? this.book.title : '未知书名')
+        Text(this.book.title.length > 0 ? this.book.title : I18n.ts('book_unknown_title'))
           .fontSize(AppFontSize.body)
           .fontColor(AppColors.textPrimary)
           .fontWeight(FontWeight.Medium)

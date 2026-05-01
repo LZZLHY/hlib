@@ -21,9 +21,12 @@ import { Logger } from '../utils/Logger';
 
 const TAG: string = 'SpeedTestVM';
 const KEY_RESULTS: string = 'speed_test_results';
+const KEY_RESULTS_TS: string = 'speed_test_results_ts';
 const CONCURRENCY: number = 6;
 const PING_TIMEOUT_MS: number = 6000;
 const SLOW_LATENCY: number = 999999; // 排序兜底
+/** 缓存 TTL：6 小时。超过后 testAll(false) 会强制重测。 */
+const RESULTS_TTL_MS: number = 6 * 60 * 60 * 1000;
 
 export class SpeedTestVM {
   private static running: boolean = false;
@@ -40,6 +43,9 @@ export class SpeedTestVM {
       [] as DomainTestResult[]
     );
     AppStorage.setOrCreate<DomainTestResult[]>(AppStorageKeys.SPEED_RESULTS, arr);
+
+    const ts: number = await PreferencesStore.getNumber('settings', KEY_RESULTS_TS, 0);
+    AppStorage.setOrCreate<number>(AppStorageKeys.SPEED_LAST_TS, ts);
     return arr;
   }
 
@@ -49,8 +55,22 @@ export class SpeedTestVM {
     return r !== undefined ? r : [];
   }
 
+  /** 上次测速完成时间戳（ms）；0 表示从未测过。 */
+  static getLastTs(): number {
+    const t: number | undefined = AppStorage.get<number>(AppStorageKeys.SPEED_LAST_TS);
+    return t !== undefined ? t : 0;
+  }
+
+  /** 缓存是否在 TTL 有效期内。 */
+  static isCacheFresh(): boolean {
+    const ts: number = SpeedTestVM.getLastTs();
+    return ts > 0 && (Date.now() - ts) < RESULTS_TTL_MS;
+  }
+
   /**
-   * 全量测速。force=false 时若已有结果直接返回缓存。
+   * 全量测速。
+   *   - force=true：总是重测。
+   *   - force=false：若缓存命中当前域列表且在 6h TTL 内直接返回；否则继续测速。
    */
   static async testAll(force: boolean = true, domains?: string[]): Promise<DomainTestResult[]> {
     if (SpeedTestVM.running) {
@@ -61,8 +81,12 @@ export class SpeedTestVM {
 
     if (!force) {
       const cached: DomainTestResult[] = SpeedTestVM.getResults();
-      if (cached.length === list.length) {
+      if (cached.length === list.length && SpeedTestVM.isCacheFresh()) {
+        Logger.i(TAG, `cache hit (age=${Date.now() - SpeedTestVM.getLastTs()} ms), skip`);
         return cached;
+      }
+      if (cached.length === list.length) {
+        Logger.i(TAG, `cache stale (age=${Date.now() - SpeedTestVM.getLastTs()} ms), retesting`);
       }
     }
 
@@ -107,6 +131,9 @@ export class SpeedTestVM {
 
       AppStorage.setOrCreate<DomainTestResult[]>(AppStorageKeys.SPEED_RESULTS, results.slice());
       await PreferencesStore.putObject<DomainTestResult[]>('settings', KEY_RESULTS, results);
+      const now: number = Date.now();
+      AppStorage.setOrCreate<number>(AppStorageKeys.SPEED_LAST_TS, now);
+      await PreferencesStore.putNumber('settings', KEY_RESULTS_TS, now);
       const fastestDomain: string = results.length > 0 ? results[0].domain : 'n/a';
       Logger.i(TAG, `speed test done: ${results.length} domains, fastest=${fastestDomain}`);
       return results;

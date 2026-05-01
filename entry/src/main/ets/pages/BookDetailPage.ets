@@ -23,15 +23,19 @@ import { VerticalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
 import { AppRouter, Routes, BookDetailParams, ReaderParams, SimilarParams } from '../utils/AppRouter';
 import { ErrorHelper } from '../utils/ErrorHelper';
+import { I18n } from '../utils/I18n';
 import { HttpClient } from '../api/HttpClient';
 import { UrlUtils } from '../utils/UrlUtils';
 import { Logger } from '../utils/Logger';
+import { Layout } from '../utils/Layout';
+import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
 
 const TAG: string = 'BookDetailPage';
 
 @Component
 export struct BookDetailPage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @State private bookId: string = '';
   @State private hashId: string = '';
   @State private fallbackTitle: string = '';
@@ -55,7 +59,7 @@ export struct BookDetailPage {
       this.similar = r.similar;
       this.favorited = r.favorited;
     } catch (e) {
-      this.errorMsg = ErrorHelper.describe(e as Object, '加载详情');
+      this.errorMsg = ErrorHelper.describe(e as Object, 'ctx_load_detail');
       Logger.w(TAG, `load failed: ${(e as Error).message}`);
     } finally {
       this.loading = false;
@@ -73,7 +77,7 @@ export struct BookDetailPage {
       this.favorited = next;
       BookDetailPage.toast(next ? $r('app.string.detail_favorited') : $r('app.string.detail_unfavorited'));
     } catch (e) {
-      const msg: string = ErrorHelper.describe(e as Object, '收藏');
+      const msg: string = ErrorHelper.describe(e as Object, 'ctx_favorite');
       Logger.w(TAG, `toggle fav failed: ${(e as Error).message}`);
       BookDetailPage.toastText(msg);
     }
@@ -84,20 +88,20 @@ export struct BookDetailPage {
       return;
     }
     if (!DownloadVM.canDownload(this.detail)) {
-      BookDetailPage.toastText('暂无下载链接');
+      BookDetailPage.toast($r('app.string.detail_no_download'));
       return;
     }
     try {
       const host: Context | undefined = this.getUIContext().getHostContext();
       if (host === undefined) {
-        BookDetailPage.toastText('下载启动失败：缺少上下文');
+        BookDetailPage.toast($r('app.string.detail_no_context'));
         return;
       }
       const ctx: common.UIAbilityContext = host as common.UIAbilityContext;
       await DownloadVM.start(this.detail, ctx);
-      BookDetailPage.toastText('已加入下载队列');
+      BookDetailPage.toast($r('app.string.detail_dl_queued'));
     } catch (e) {
-      const msg: string = ErrorHelper.describe(e as Object, '下载');
+      const msg: string = ErrorHelper.describe(e as Object, 'ctx_download');
       Logger.w(TAG, `download failed: ${(e as Error).message}`);
       BookDetailPage.toastText(msg);
     }
@@ -109,7 +113,7 @@ export struct BookDetailPage {
     }
     const rawUrl: string = this.detail.readOnlineUrl !== undefined ? this.detail.readOnlineUrl : '';
     if (rawUrl.length === 0) {
-      BookDetailPage.toastText('该书暂不支持在线阅读');
+      BookDetailPage.toast($r('app.string.detail_no_read'));
       return;
     }
     // 与 olib `book_detail_screen.dart` 一致：把服务端返回的 reader.<旧域> 重写为
@@ -310,7 +314,7 @@ export struct BookDetailPage {
   }
 
   @Builder
-  private metaItem(label: string, value: string) {
+  private metaItem(label: ResourceStr, value: string) {
     Column({ space: 4 }) {
       Text(label)
         .fontSize(AppFontSize.caption)
@@ -326,20 +330,33 @@ export struct BookDetailPage {
     .layoutWeight(1);
   }
 
+  /** "—" 占位的本地化字符串。 */
+  private dashStr(): string {
+    return I18n.ts('detail_meta_unset');
+  }
+
   @Builder
   private metaGrid(book: Book) {
     Column({ space: 14 }) {
       Row({ space: 16 }) {
-        this.metaItem('出版社', book.publisher !== undefined && book.publisher.length > 0 ? book.publisher : '—');
-        this.metaItem('年份', book.year !== undefined && book.year > 0 ? String(book.year) : '—');
-        this.metaItem('语言', book.language !== undefined && book.language.length > 0 ? book.language : '—');
+        this.metaItem($r('app.string.detail_meta_publisher'),
+          book.publisher !== undefined && book.publisher.length > 0 ? book.publisher : this.dashStr());
+        this.metaItem($r('app.string.detail_meta_year'),
+          book.year !== undefined && book.year > 0 ? String(book.year) : this.dashStr());
+        this.metaItem($r('app.string.detail_meta_language'),
+          book.language !== undefined && book.language.length > 0 ? book.language : this.dashStr());
       }
       .width('100%');
 
       Row({ space: 16 }) {
-        this.metaItem('页数', book.pages !== undefined && book.pages > 0 ? `${book.pages} 页` : '—');
-        this.metaItem('格式', book.extension !== undefined && book.extension.length > 0 ? book.extension.toUpperCase() : '—');
-        this.metaItem('大小', book.filesizeString !== undefined && book.filesizeString.length > 0 ? book.filesizeString : '—');
+        this.metaItem($r('app.string.detail_meta_pages'),
+          book.pages !== undefined && book.pages > 0
+            ? I18n.format('detail_pages_unit_with_count', [book.pages])
+            : this.dashStr());
+        this.metaItem($r('app.string.detail_meta_format'),
+          book.extension !== undefined && book.extension.length > 0 ? book.extension.toUpperCase() : this.dashStr());
+        this.metaItem($r('app.string.detail_meta_size'),
+          book.filesizeString !== undefined && book.filesizeString.length > 0 ? book.filesizeString : this.dashStr());
       }
       .width('100%');
     }
@@ -362,7 +379,9 @@ export struct BookDetailPage {
             .layoutWeight(1);
 
           if (book.description.length > 200) {
-            Text(this.descExpanded ? '收起' : '展开')
+            Text(this.descExpanded
+              ? $r('app.string.detail_desc_collapse')
+              : $r('app.string.detail_desc_expand'))
               .fontSize(AppFontSize.bodySm)
               .fontColor(AppColors.brandPrimary)
               .onClick(() => {
@@ -402,7 +421,7 @@ export struct BookDetailPage {
           .alignItems(HorizontalAlign.Start)
           .layoutWeight(1);
 
-          Text('查看全部 ›')
+          Text($r('app.string.detail_view_all'))
             .fontSize(AppFontSize.bodySm)
             .fontColor(AppColors.brandPrimary)
             .onClick(() => this.onMoreSimilar());
@@ -508,15 +527,39 @@ export struct BookDetailPage {
           });
         } else if (this.detail !== null) {
           Scroll() {
-            Column() {
-              this.hero(this.detail);
-              this.actionRow(this.detail);
-              this.metaGrid(this.detail);
-              this.descriptionBlock(this.detail);
-              this.similarBlock();
-              Blank().height(40);
+            if (Layout.useDetailTwoColumn(this.bp)) {
+              // ≥md 双栏：左封面/操作/meta，右描述/相似。铺满屏幕宽度
+              Row({ space: 12 }) {
+                Column() {
+                  this.hero(this.detail);
+                  this.actionRow(this.detail);
+                  this.metaGrid(this.detail);
+                }
+                .layoutWeight(1)
+                .alignItems(HorizontalAlign.Center);
+
+                Column() {
+                  this.descriptionBlock(this.detail);
+                  this.similarBlock();
+                  Blank().height(40);
+                }
+                .layoutWeight(2)
+                .alignItems(HorizontalAlign.Start);
+              }
+              .width('100%')
+              .alignItems(VerticalAlign.Top);
+            } else {
+              // sm 单栏
+              Column() {
+                this.hero(this.detail);
+                this.actionRow(this.detail);
+                this.metaGrid(this.detail);
+                this.descriptionBlock(this.detail);
+                this.similarBlock();
+                Blank().height(40);
+              }
+              .width('100%');
             }
-            .width('100%');
           }
           .layoutWeight(1)
           .scrollBar(BarState.Off);

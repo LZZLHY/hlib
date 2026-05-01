@@ -37,29 +37,58 @@ export interface FilterValues {
   language: string;
   order: string;
   extension: string;
+  /** 0 表示不筛选，否则 1800..当前年 范围内的整数。 */
+  yearFrom: number;
+  yearTo: number;
 }
 
 @CustomDialog
 export struct FilterDialog {
   controller?: CustomDialogController;
-  initial: FilterValues = { language: 'all', order: 'default', extension: 'all' };
+  initial: FilterValues = { language: 'all', order: 'default', extension: 'all', yearFrom: 0, yearTo: 0 };
   onApply: (values: FilterValues) => void = (_: FilterValues): void => {};
 
   @State private language: string = 'all';
   @State private order: string = 'default';
   @State private extension: string = 'all';
+  @State private yearFromStr: string = '';
+  @State private yearToStr: string = '';
+  @State private yearError: boolean = false;
 
   aboutToAppear(): void {
     this.language = this.initial.language;
     this.order = this.initial.order;
     this.extension = this.initial.extension;
+    this.yearFromStr = this.initial.yearFrom > 0 ? String(this.initial.yearFrom) : '';
+    this.yearToStr = this.initial.yearTo > 0 ? String(this.initial.yearTo) : '';
+  }
+
+  /** 解析年份字符串；非正整数、<=0 返回 0；否则限制在 [1000, 2999]。 */
+  private parseYear(s: string): number {
+    const t: string = s.trim();
+    if (t.length === 0) return 0;
+    const n: number = parseInt(t, 10);
+    if (!Number.isFinite(n) || n <= 0) return 0;
+    if (n < 1000) return 1000;
+    if (n > 2999) return 2999;
+    return n;
   }
 
   private apply(): void {
+    const from: number = this.parseYear(this.yearFromStr);
+    const to: number = this.parseYear(this.yearToStr);
+    // 仅当两端都填才要求顺序；只填一端仍然放行
+    if (from > 0 && to > 0 && from > to) {
+      this.yearError = true;
+      return;
+    }
+    this.yearError = false;
     const v: FilterValues = {
       language: this.language,
       order: this.order,
       extension: this.extension,
+      yearFrom: from,
+      yearTo: to,
     };
     if (this.controller !== undefined) {
       this.controller.close();
@@ -71,6 +100,9 @@ export struct FilterDialog {
     this.language = 'all';
     this.order = 'default';
     this.extension = 'all';
+    this.yearFromStr = '';
+    this.yearToStr = '';
+    this.yearError = false;
   }
 
   // ── Builder ──
@@ -138,6 +170,59 @@ export struct FilterDialog {
     .width('100%');
   }
 
+  @Builder
+  private yearSection() {
+    Column({ space: 8 }) {
+      Text($r('app.string.search_filter_year'))
+        .fontSize(AppFontSize.bodySm)
+        .fontColor(AppColors.textSecondary)
+        .alignSelf(ItemAlign.Start);
+
+      Row({ space: 8 }) {
+        TextInput({ placeholder: $r('app.string.search_year_hint_from'), text: this.yearFromStr })
+          .type(InputType.Number)
+          .height(40)
+          .layoutWeight(1)
+          .borderRadius(AppRadius.sm)
+          .backgroundColor(AppColors.surfaceAlt)
+          .fontSize(AppFontSize.bodySm)
+          .borderWidth(this.yearError ? 1 : 0)
+          .borderColor(AppColors.error)
+          .onChange((v: string): void => {
+            this.yearFromStr = v;
+            if (this.yearError) this.yearError = false;
+          });
+
+        Text('—')
+          .fontSize(AppFontSize.body)
+          .fontColor(AppColors.textTertiary);
+
+        TextInput({ placeholder: $r('app.string.search_year_hint_to'), text: this.yearToStr })
+          .type(InputType.Number)
+          .height(40)
+          .layoutWeight(1)
+          .borderRadius(AppRadius.sm)
+          .backgroundColor(AppColors.surfaceAlt)
+          .fontSize(AppFontSize.bodySm)
+          .borderWidth(this.yearError ? 1 : 0)
+          .borderColor(AppColors.error)
+          .onChange((v: string): void => {
+            this.yearToStr = v;
+            if (this.yearError) this.yearError = false;
+          });
+      }
+      .width('100%');
+
+      if (this.yearError) {
+        Text($r('app.string.search_year_invalid'))
+          .fontSize(AppFontSize.caption)
+          .fontColor(AppColors.error)
+          .alignSelf(ItemAlign.Start);
+      }
+    }
+    .width('100%');
+  }
+
   build() {
     Column() {
       // 标题
@@ -161,6 +246,7 @@ export struct FilterDialog {
           this.langSection();
           this.orderSection();
           this.extSection();
+          this.yearSection();
         }
         .padding({ left: 20, right: 20, top: 8, bottom: 16 });
       }
@@ -194,6 +280,7 @@ export struct FilterDialog {
     }
     .width('92%')
     .height('72%')
+    .constraintSize({ maxWidth: 520 })
     .backgroundColor('#E6FFFFFF')
     .backgroundBlurStyle(BlurStyle.Thick, {
       colorMode: ThemeColorMode.SYSTEM,

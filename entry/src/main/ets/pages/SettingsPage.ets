@@ -13,9 +13,12 @@ import { ConfigurationConstant } from '@kit.AbilityKit';
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { i18n } from '@kit.LocalizationKit';
+import { picker } from '@kit.CoreFileKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
-import { AppStorageKeys, ThemeMode } from '../storage/AppStorageKeys';
+import { AppStorageKeys, ThemeMode, Breakpoint, NavStyle } from '../storage/AppStorageKeys';
+import { Layout } from '../utils/Layout';
 import { User } from '../model/User';
 import { AuthVM } from '../viewmodel/AuthVM';
 import { SpeedTestVM } from '../viewmodel/SpeedTestVM';
@@ -25,29 +28,31 @@ import { LANGUAGE_FILTERS, FilterItem } from '../api/SearchFilters';
 import { FavoritesStore } from '../storage/FavoritesStore';
 import { DownloadHistoryStore } from '../storage/DownloadHistoryStore';
 import { ReadingPositionStore } from '../storage/ReadingPositionStore';
-import { PendingDownloadStore } from '../storage/PendingDownloadStore';
 import { HttpClient } from '../api/HttpClient';
 import { DomainManifest } from '../api/DomainManifest';
 import { PreferencesStore } from '../storage/PreferencesStore';
 import { DomainSelectorDialog } from '../components/DomainSelectorDialog';
 import { CustomDomainDialog } from '../components/CustomDomainDialog';
 import { AppRouter, Routes } from '../utils/AppRouter';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'SettingsPage';
 
-type DownloadDir = 'default' | 'cache';
+type DownloadDir = 'default' | 'cache' | 'public';
 
 @Component
 export struct SettingsPage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.USER) private user: User | null = null;
   @StorageProp(AppStorageKeys.DOMAIN) private domain: string = '';
   @StorageLink(AppStorageKeys.THEME_MODE) private themeMode: ThemeMode = 'system';
   @StorageLink(AppStorageKeys.LOCALE) private locale: string = '';
   @StorageLink(AppStorageKeys.DOWNLOAD_PATH) private downloadPath: string = '';
+  @StorageLink(AppStorageKeys.NAV_STYLE) private navStylePref: NavStyle = 'auto';
 
-  @State private appVersion: string = '1.0.0';
+  @StorageProp(AppStorageKeys.APP_VERSION) private appVersion: string = '1.0.0';
 
   // ── 网络加固：代理与 Manifest UI 状态 ──
   @State private proxyEnabled: boolean = false;
@@ -120,7 +125,7 @@ export struct SettingsPage {
   private applyDomain(d: string): void {
     AppStorage.setOrCreate<string>(AppStorageKeys.DOMAIN, d);
     HttpClient.instance.setDomain(d);
-    SettingsPage.toast(`已切换到 ${d}`);
+    SettingsPage.toast(I18n.format('settings_dom_switched_fmt', [d]));
   }
 
   private openDomainSelector(): void {
@@ -132,13 +137,13 @@ export struct SettingsPage {
   }
 
   private async retestSpeed(): Promise<void> {
-    SettingsPage.toast('开始测速…');
+    SettingsPage.toastResource($r('app.string.settings_speed_test_starting'));
     try {
       await SpeedTestVM.testAll(true);
-      SettingsPage.toast('测速完成');
+      SettingsPage.toastResource($r('app.string.settings_speed_test_done'));
     } catch (e) {
       Logger.w(TAG, `speedTest failed: ${(e as Error).message}`);
-      SettingsPage.toast('测速失败');
+      SettingsPage.toastResource($r('app.string.settings_speed_test_failed'));
     }
   }
 
@@ -153,19 +158,63 @@ export struct SettingsPage {
     try {
       // 空串 → 清除应用偏好语言（跟随系统）
       i18n.System.setAppPreferredLanguage(value.length === 0 ? '' : value);
-      SettingsPage.toast(value.length === 0 ? '已跟随系统' : `已切换到 ${value}`);
+      if (value.length === 0) {
+        SettingsPage.toastResource($r('app.string.settings_lang_followed_system'));
+      } else {
+        SettingsPage.toast(I18n.format('settings_lang_changed_fmt', [value]));
+      }
     } catch (e) {
       Logger.w(TAG, `setAppPreferredLanguage failed: ${(e as Error).message}`);
     }
   }
 
   private setDownloadDir(dir: DownloadDir): void {
+    if (dir === 'public') {
+      this.pickPublicFolder().catch((e: Object): void => {
+        Logger.w(TAG, `pickPublicFolder failed: ${(e as Error).message}`);
+        SettingsPage.toastResource($r('app.string.settings_dir_picker_failed'));
+      });
+      return;
+    }
     this.downloadPath = dir === 'cache' ? 'cache' : '';
-    SettingsPage.toast(dir === 'cache' ? '已切换到缓存目录' : '已切换到默认目录');
+    SettingsPage.toastResource(
+      dir === 'cache' ? $r('app.string.settings_dir_cache_done') : $r('app.string.settings_dir_default_done'),
+    );
+  }
+
+  /** 通过系统 picker 选择一个公共下载文件夹（用户授权后会回写持久化 URI 到 DOWNLOAD_PATH）。 */
+  private async pickPublicFolder(): Promise<void> {
+    const ctxOpt: Context | undefined = this.getUIContext().getHostContext();
+    if (ctxOpt === undefined) {
+      SettingsPage.toastResource($r('app.string.settings_dir_picker_failed'));
+      return;
+    }
+    // 正向 canIUse 守卫：FOLDER 选择属于较新 syscap，部分设备无该能力时降级提示
+    if (canIUse('SystemCapability.FileManagement.UserFileService.FolderSelection')) {
+      try {
+        const docPicker: picker.DocumentViewPicker = new picker.DocumentViewPicker(ctxOpt);
+        const opts: picker.DocumentSelectOptions = new picker.DocumentSelectOptions();
+        opts.selectMode = picker.DocumentSelectMode.FOLDER;
+        const uris: string[] = await docPicker.select(opts);
+        if (uris.length === 0) {
+          return; // 用户取消
+        }
+        this.downloadPath = uris[0];
+        SettingsPage.toastResource($r('app.string.settings_dir_public_done'));
+      } catch (e) {
+        const be: BusinessError = e as BusinessError;
+        Logger.w(TAG, `picker failed: code=${be.code} msg=${be.message}`);
+        SettingsPage.toastResource($r('app.string.settings_dir_picker_failed'));
+      }
+    } else {
+      SettingsPage.toastResource($r('app.string.settings_dir_picker_unsupported'));
+    }
   }
 
   private currentDownloadDir(): DownloadDir {
-    return this.downloadPath === 'cache' ? 'cache' : 'default';
+    if (this.downloadPath === 'cache') return 'cache';
+    if (this.downloadPath.length > 0 && this.downloadPath !== 'default') return 'public';
+    return 'default';
   }
 
   private confirmClearCache(): void {
@@ -175,7 +224,7 @@ export struct SettingsPage {
       alignment: DialogAlignment.Center,
       primaryButton: {
         value: $r('app.string.common_ok'),
-        fontColor: '#E53935',
+        fontColor: AppColors.error,
         action: (): void => {
           SettingsPage.runClearCache().catch((e: Error): void => {
             Logger.w(TAG, `clearCache failed: ${e.message}`);
@@ -184,7 +233,7 @@ export struct SettingsPage {
       },
       secondaryButton: {
         value: $r('app.string.common_cancel'),
-        fontColor: '#666666',
+        fontColor: AppColors.textSecondary,
         action: (): void => {},
       },
     });
@@ -194,7 +243,6 @@ export struct SettingsPage {
     await FavoritesStore.clear();
     await DownloadHistoryStore.clear();
     await ReadingPositionStore.clear();
-    await PendingDownloadStore.clear();
     AppStorage.setOrCreate<number[]>(AppStorageKeys.FAVORITE_IDS, []);
     AppStorage.setOrCreate<object[]>(AppStorageKeys.FAVORITE_BOOKS, []);
     AppStorage.setOrCreate<object[]>(AppStorageKeys.DOWNLOAD_TASKS, []);
@@ -235,24 +283,34 @@ export struct SettingsPage {
       alignment: DialogAlignment.Center,
       primaryButton: {
         value: $r('app.string.settings_logout'),
-        fontColor: '#E53935',
+        fontColor: AppColors.error,
         action: (): void => {
           AuthVM.logout()
             .then((): void => {
+              // 关键：清空整个导航栈再压 LOGIN，否则用户能 back 到主页缓存。
+              AppRouter.clear();
               AppRouter.replace(Routes.LOGIN);
             })
             .catch((e: Error): void => {
               Logger.w(TAG, `logout failed: ${e.message}`);
-              SettingsPage.toast(`退出失败：${e.message}`);
+              SettingsPage.toast(I18n.format('settings_logout_failed_fmt', [e.message]));
             });
         },
       },
       secondaryButton: {
         value: $r('app.string.common_cancel'),
-        fontColor: '#666666',
+        fontColor: AppColors.textSecondary,
         action: (): void => {},
       },
     });
+  }
+
+  private goLogin(): void {
+    AppRouter.replace(Routes.LOGIN);
+  }
+
+  private goPrivacy(): void {
+    AppRouter.push(Routes.PRIVACY);
   }
 
   private goHistory(): void {
@@ -328,7 +386,9 @@ export struct SettingsPage {
         .height(48);
 
         Column({ space: 4 }) {
-          Text(this.user !== null && this.user.name.length > 0 ? this.user.name : '未登录')
+          Text(this.user !== null && this.user.name.length > 0
+            ? this.user.name
+            : I18n.ts('settings_login_cta'))
             .fontSize(AppFontSize.body)
             .fontWeight(FontWeight.Bold)
             .fontColor(AppColors.textPrimary);
@@ -342,8 +402,18 @@ export struct SettingsPage {
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1);
+
+        // 未登录态：右侧加「登录账号」按钮
+        if (this.user === null) {
+          Image($r('app.media.ic_chevron_right')).width(16).height(16);
+        }
       }
-      .width('100%');
+      .width('100%')
+      .onClick((): void => {
+        if (this.user === null) {
+          this.goLogin();
+        }
+      });
 
       if (this.user !== null) {
         Divider().color(AppColors.divider).strokeWidth(0.5);
@@ -405,7 +475,7 @@ export struct SettingsPage {
     Column() {
       this.settingRow(
         $r('app.string.settings_current_line'),
-        this.domain.length > 0 ? this.domain : '默认',
+        this.domain.length > 0 ? this.domain : I18n.ts('settings_default_dom_label'),
         (): void => this.openDomainSelector(),
       );
       Divider().color(AppColors.divider).strokeWidth(0.5).margin({ left: AppSpace.s16 });
@@ -464,7 +534,7 @@ export struct SettingsPage {
         // 状态行
         Row() {
           Text(this.manifestCount > 0
-            ? `${this.manifestVersion.length > 0 ? this.manifestVersion : '—'} · ${this.manifestCount}`
+            ? `${this.manifestVersion.length > 0 ? this.manifestVersion : I18n.ts('detail_meta_unset')} · ${this.manifestCount}`
             : '')
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.textTertiary)
@@ -670,6 +740,49 @@ export struct SettingsPage {
   }
 
   @Builder
+  private navStylePill(value: NavStyle, label: ResourceStr) {
+    Button() {
+      Text(label)
+        .fontSize(AppFontSize.bodySm)
+        .fontWeight(this.navStylePref === value ? FontWeight.Bold : FontWeight.Regular)
+        .fontColor(this.navStylePref === value ? AppColors.textOnPrimary : AppColors.textPrimary);
+    }
+    .layoutWeight(1)
+    .height(40)
+    .backgroundColor(this.navStylePref === value ? AppColors.brandPrimary : AppColors.surfaceAlt)
+    .borderRadius(AppRadius.sm)
+    .onClick(() => {
+      this.navStylePref = value;
+    });
+  }
+
+  @Builder
+  private navStyleCard() {
+    Column({ space: 12 }) {
+      Text($r('app.string.settings_nav_style'))
+        .fontSize(AppFontSize.body)
+        .fontColor(AppColors.textPrimary)
+        .alignSelf(ItemAlign.Start);
+
+      Row({ space: 8 }) {
+        this.navStylePill('auto', $r('app.string.settings_nav_style_auto'));
+        this.navStylePill('bottom', $r('app.string.settings_nav_style_bottom'));
+        this.navStylePill('side', $r('app.string.settings_nav_style_side'));
+      }
+      .width('100%');
+
+      Text($r('app.string.settings_nav_style_hint'))
+        .fontSize(AppFontSize.caption)
+        .fontColor(AppColors.textTertiary)
+        .alignSelf(ItemAlign.Start);
+    }
+    .width('100%')
+    .padding(AppSpace.s16)
+    .backgroundColor(AppColors.surface)
+    .borderRadius(AppRadius.md);
+  }
+
+  @Builder
   private dirPill(dir: DownloadDir, label: ResourceStr) {
     Button() {
       Text(label)
@@ -703,8 +816,16 @@ export struct SettingsPage {
         Row({ space: 8 }) {
           this.dirPill('default', $r('app.string.settings_download_dir_default'));
           this.dirPill('cache', $r('app.string.settings_download_dir_cache'));
+          this.dirPill('public', $r('app.string.settings_download_dir_public'));
         }
         .width('100%');
+        if (this.currentDownloadDir() === 'public' && this.downloadPath.length > 0) {
+          Text(this.downloadPath)
+            .fontSize(AppFontSize.caption)
+            .fontColor(AppColors.textTertiary)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+        }
       }
       .width('100%')
       .padding({ left: AppSpace.s16, right: AppSpace.s16, top: 12, bottom: 12 })
@@ -840,7 +961,7 @@ export struct SettingsPage {
     await DomainManifest.clearRemote();
     this.manifestVersion = '';
     this.manifestCount = 0;
-    SettingsPage.toast('已清除同步缓存');
+    SettingsPage.toastResource($r('app.string.settings_manifest_cleared'));
   }
 
   @Builder
@@ -850,6 +971,20 @@ export struct SettingsPage {
         $r('app.string.settings_error_log'),
         '',
         (): void => this.goErrorLog(),
+      );
+    }
+    .width('100%')
+    .backgroundColor(AppColors.surface)
+    .borderRadius(AppRadius.md);
+  }
+
+  @Builder
+  private privacyCard() {
+    Column() {
+      this.settingRow(
+        $r('app.string.settings_privacy_entry'),
+        '',
+        (): void => this.goPrivacy(),
       );
     }
     .width('100%')
@@ -900,6 +1035,9 @@ export struct SettingsPage {
 
             this.sectionHeader($r('app.string.settings_section_appearance'));
             this.appearanceCard();
+            if (Layout.showNavStyleSwitch(this.bp)) {
+              this.navStyleCard();
+            }
             this.languageCard();
 
             this.sectionHeader($r('app.string.settings_section_download'));
@@ -907,6 +1045,7 @@ export struct SettingsPage {
 
             this.sectionHeader($r('app.string.settings_section_diagnostics'));
             this.diagnosticsCard();
+            this.privacyCard();
 
             this.sectionHeader($r('app.string.settings_section_about'));
             this.aboutCard();
@@ -914,7 +1053,7 @@ export struct SettingsPage {
             Blank().height(40);
           }
           .width('100%')
-          .padding({ left: 28, right: 28 });
+          .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp) });
         }
         .layoutWeight(1)
         .scrollBar(BarState.Off);

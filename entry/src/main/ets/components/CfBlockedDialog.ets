@@ -58,6 +58,7 @@ export struct CfBlockedDialog {
     }
     .padding(AppSpace.s24)
     .width('85%')
+    .constraintSize({ maxWidth: 420 })
     .backgroundColor(AppColors.surface)
     .borderRadius(AppRadius.lg)
     .alignItems(HorizontalAlign.Center);

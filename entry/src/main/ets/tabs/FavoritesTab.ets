@@ -13,13 +13,15 @@
 
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppSpace } from '../theme/AppTextStyles';
-import { AppStorageKeys } from '../storage/AppStorageKeys';
+import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
+import { Layout } from '../utils/Layout';
 import { Book } from '../model/Book';
 import { FavoritesVM } from '../viewmodel/FavoritesVM';
 import { HorizontalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
 import { AppRouter, Routes, BookDetailParams } from '../utils/AppRouter';
 import { ErrorHelper } from '../utils/ErrorHelper';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { promptAction } from '@kit.ArkUI';
 
@@ -28,6 +30,7 @@ const TAG: string = 'FavoritesTab';
 @Component
 export struct FavoritesTab {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.FAVORITE_BOOKS) private books: Book[] = [];
   @State private loading: boolean = false;
   @State private refreshing: boolean = false;
@@ -45,7 +48,7 @@ export struct FavoritesTab {
     try {
       await FavoritesVM.refresh();
     } catch (e) {
-      this.errorMsg = ErrorHelper.describe(e as Object, '加载收藏');
+      this.errorMsg = ErrorHelper.describe(e as Object, 'ctx_load_favorites');
       Logger.w(TAG, `refresh failed: ${(e as Error).message}`);
     } finally {
       this.loading = false;
@@ -65,17 +68,17 @@ export struct FavoritesTab {
 
   private confirmRemove(b: Book): void {
     this.getUIContext().showAlertDialog({
-      title: '取消收藏？',
-      message: `将从收藏中移除《${b.title}》。`,
+      title: $r('app.string.favorites_remove_title'),
+      message: I18n.format('favorites_remove_msg_fmt', [b.title]),
       alignment: DialogAlignment.Center,
       primaryButton: {
-        value: '移除',
-        fontColor: '#E53935',
+        value: $r('app.string.common_remove'),
+        fontColor: AppColors.error,
         action: (): void => {
           FavoritesVM.remove(b.id)
             .then((): Promise<void> => this.refresh())
             .catch((e: Error): void => {
-              const msg: string = ErrorHelper.describe(e as Object, '取消收藏');
+              const msg: string = ErrorHelper.describe(e as Object, 'ctx_unfavorite');
               Logger.w(TAG, `remove failed: ${e.message}`);
               try {
                 promptAction.openToast({ message: msg, duration: 1800 });
@@ -86,8 +89,8 @@ export struct FavoritesTab {
         },
       },
       secondaryButton: {
-        value: '取消',
-        fontColor: '#666666',
+        value: $r('app.string.common_cancel'),
+        fontColor: AppColors.textSecondary,
         action: (): void => {},
       },
     });
@@ -101,7 +104,7 @@ export struct FavoritesTab {
           .fontSize(AppFontSize.headline)
           .fontWeight(FontWeight.Bold)
           .fontColor(AppColors.textPrimary);
-        Text(`${this.books !== null && this.books !== undefined ? this.books.length : 0} 本`)
+        Text(I18n.format('favorites_count_fmt', [this.books !== null && this.books !== undefined ? this.books.length : 0]))
           .fontSize(AppFontSize.caption)
           .fontColor(AppColors.textTertiary)
           .margin({ top: 2 });
@@ -119,7 +122,7 @@ export struct FavoritesTab {
       .onClick(() => this.refresh());
     }
     .width('100%')
-    .padding({ left: AppSpace.s24, right: AppSpace.s24, top: AppSpace.s16, bottom: AppSpace.s8 })
+    .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s16, bottom: AppSpace.s8 })
   }
 
   build() {
@@ -156,9 +159,10 @@ export struct FavoritesTab {
             message: $r('app.string.favorites_empty_msg'),
           });
         } else {
-          List({ space: 12 }) {
+          // ≥md 走双列 Grid，sm 走单列 List；手势保留长按取消收藏
+          Grid() {
             ForEach(this.books, (b: Book) => {
-              ListItem() {
+              GridItem() {
                 HorizontalBookCard({
                   book: b,
                   onTap: (book: Book): void => this.goDetail(book),
@@ -171,11 +175,13 @@ export struct FavoritesTab {
                   }),
               );
             }, (b: Book, idx: number) => `${b.id}_${idx}`);
-
-            ListItem().height(100);
           }
+          .columnsTemplate(this.bp === 'sm' ? '1fr' : (this.bp === 'xl' ? '1fr 1fr 1fr' : '1fr 1fr'))
+          .columnsGap(12)
+          .rowsGap(12)
+          .layoutWeight(1)
           .width('100%')
-          .padding({ left: AppSpace.s24, right: AppSpace.s24 })
+          .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), bottom: 100 })
           .edgeEffect(EdgeEffect.None)
           .scrollBar(BarState.Off);
         }

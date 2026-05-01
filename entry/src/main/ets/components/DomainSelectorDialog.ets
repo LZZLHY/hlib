@@ -246,6 +246,7 @@ export struct DomainSelectorDialog {
     }
     .width('92%')
     .height('70%')
+    .constraintSize({ maxWidth: 520 })
     .backgroundColor('#E6FFFFFF')
     .backgroundBlurStyle(BlurStyle.Thick, {
       colorMode: ThemeColorMode.SYSTEM,

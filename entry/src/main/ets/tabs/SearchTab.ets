@@ -19,7 +19,10 @@ import { EmptyState } from '../components/EmptyState';
 import { FilterDialog, FilterValues } from '../components/FilterDialog';
 import { CfBlockedDialog } from '../components/CfBlockedDialog';
 import { AppRouter, Routes, BookDetailParams } from '../utils/AppRouter';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
+import { Layout } from '../utils/Layout';
+import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
 
 const TAG: string = 'SearchTab';
 
@@ -29,6 +32,7 @@ export struct SearchTab {
   onOpenDomainSelector: () => void = (): void => {};
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @State private query: string = '';
   @State private books: Book[] = [];
   @State private currentPage: number = 1;
@@ -36,7 +40,7 @@ export struct SearchTab {
   @State private loading: boolean = false;
   @State private refreshing: boolean = false;
   @State private hasSearched: boolean = false;
-  @State private filterValues: FilterValues = { language: 'all', order: 'default', extension: 'all' };
+  @State private filterValues: FilterValues = { language: 'all', order: 'default', extension: 'all', yearFrom: 0, yearTo: 0 };
 
   private filterController: CustomDialogController = new CustomDialogController({
     builder: FilterDialog({
@@ -84,6 +88,13 @@ export struct SearchTab {
     );
     if (extItem !== undefined && extItem.apiValue !== undefined) {
       opts.extensions = [extItem.apiValue];
+    }
+
+    if (this.filterValues.yearFrom > 0) {
+      opts.yearFrom = this.filterValues.yearFrom;
+    }
+    if (this.filterValues.yearTo > 0) {
+      opts.yearTo = this.filterValues.yearTo;
     }
     return opts;
   }
@@ -165,7 +176,9 @@ export struct SearchTab {
   private hasActiveFilters(): boolean {
     return this.filterValues.language !== 'all'
       || this.filterValues.order !== 'default'
-      || this.filterValues.extension !== 'all';
+      || this.filterValues.extension !== 'all'
+      || this.filterValues.yearFrom > 0
+      || this.filterValues.yearTo > 0;
   }
 
   // ── Builders ──
@@ -211,7 +224,9 @@ export struct SearchTab {
           });
 
           if (this.totalPages > 0) {
-            Text(`${this.books.length} ${this.totalPages > 1 ? `· ${this.currentPage}/${this.totalPages} 页` : ''}`)
+            Text(this.totalPages > 1
+              ? I18n.format('search_meta_books_pages_fmt', [this.books.length, this.currentPage, this.totalPages])
+              : I18n.format('search_meta_books_fmt', [this.books.length]))
               .fontSize(AppFontSize.bodySm)
               .fontColor(AppColors.textSecondary);
           }
@@ -221,7 +236,7 @@ export struct SearchTab {
         .width('100%');
       }
       .width('100%')
-      .padding({ left: AppSpace.s16, right: AppSpace.s16, top: AppSpace.s12, bottom: AppSpace.s8 })
+      .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s12, bottom: AppSpace.s8 })
     }
     .width('100%')
     .backgroundBlurStyle(BlurStyle.Thin, {
