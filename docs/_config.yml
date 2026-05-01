@@ -1,0 +1,13 @@
+title: 海阅 (HLib)
+description: HarmonyOS 第三方电子图书阅读客户端 · 隐私政策与用户协议
+theme: jekyll-theme-minimal
+lang: zh-CN
+show_downloads: false
+
+# 排除开发文档，避免被发布到 GitHub Pages
+exclude:
+  - IMPLEMENTATION_PLAN.md
+  - TECHNICAL_DESIGN.md
+  - IMMERSIVE_MATERIAL_PLAN.md
+  - OLIB_REVERSE_ENGINEERING.md
+  - changelog.json
