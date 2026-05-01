@@ -27,7 +27,7 @@ This app is published and maintained by an independent developer.
 
 - **App name**: HLib (Chinese: 海阅)
 - **Developer type**: Independent individual developer
-- **Contact**: Please obtain the latest contact email from the AppGallery listing → Developer → Contact Developer.
+- **Contact**: [3185300855@qq.com](mailto:3185300855@qq.com)
 
 For any questions related to this statement or to exercise your rights as a data subject, please contact us via the channel above.
 
@@ -136,7 +136,7 @@ If you disagree with the updated content, you may stop using the app and uninsta
 
 ## 11. Contact
 
-If you have any questions, comments or suggestions about this statement, or wish to exercise your rights as a data subject, please contact us via the developer contact on the AppGallery listing. We will respond within **15 business days**.
+If you have any questions, comments or suggestions about this statement, or wish to exercise your rights as a data subject, please contact us at [3185300855@qq.com](mailto:3185300855@qq.com). We will respond within **15 business days**.
 
 ---
 
