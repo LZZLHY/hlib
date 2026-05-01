@@ -18,6 +18,7 @@ import { ReaderPage } from './ReaderPage';
 import { SettingsPage } from './SettingsPage';
 import { HistoryPage } from './HistoryPage';
 import { ErrorLogPage } from './ErrorLogPage';
+import { PrivacyPage } from './PrivacyPage';
 
 const TAG: string = 'RootPage';
 
@@ -56,6 +57,8 @@ struct RootPage {
       HistoryPage();
     } else if (name === Routes.ERROR_LOG) {
       ErrorLogPage();
+    } else if (name === Routes.PRIVACY) {
+      PrivacyPage();
     }
   }
 

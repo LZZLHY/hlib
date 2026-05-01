@@ -18,17 +18,23 @@ import { FavoritesTab } from '../tabs/FavoritesTab';
 import { DownloadsTab } from '../tabs/DownloadsTab';
 import { DomainSelectorDialog } from '../components/DomainSelectorDialog';
 import { CustomDomainDialog } from '../components/CustomDomainDialog';
+import { SideBar } from '../components/SideBar';
 import { HttpClient } from '../api/HttpClient';
 import { FavoritesVM } from '../viewmodel/FavoritesVM';
 import { DownloadVM } from '../viewmodel/DownloadVM';
 import { AppRouter, Routes } from '../utils/AppRouter';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
+import { Layout } from '../utils/Layout';
+import { Breakpoint, NavStyle } from '../storage/AppStorageKeys';
 
 const TAG: string = 'MainPage';
 
 @Component
 export struct MainPage {
   @StorageProp('navBarHeight') navBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
+  @StorageProp(AppStorageKeys.NAV_STYLE) navStyle: NavStyle = 'auto';
   @State private currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();
 
@@ -114,7 +120,7 @@ export struct MainPage {
     }
     this.lastBackTs = now;
     try {
-      promptAction.openToast({ message: '再按一次退出', duration: 1800 });
+      promptAction.openToast({ message: I18n.ts('main_press_back_to_exit'), duration: 1800 });
     } catch (e) {
       Logger.w(TAG, `toast failed: ${(e as Error).message}`);
     }
@@ -123,63 +129,84 @@ export struct MainPage {
 
   build() {
     NavDestination() {
-      Stack({ alignContent: Alignment.Bottom }) {
-        Tabs({ barPosition: BarPosition.End, index: this.currentIndex, controller: this.tabsController }) {
-          TabContent() {
-            HomeTab({
-              onSearchTap: (): void => this.switchToSearch(),
-              onSettingsTap: (): void => this.goSettings(),
-            });
-          }
-          .tabBar($r('app.string.tab_home'))
-
-          TabContent() {
-            SearchTab({ onOpenDomainSelector: (): void => this.openDomainSelector() });
-          }
-          .tabBar($r('app.string.tab_search'))
-
-          TabContent() {
-            FavoritesTab();
-          }
-          .tabBar($r('app.string.tab_favorites'))
-
-          TabContent() {
-            DownloadsTab();
-          }
-          .tabBar($r('app.string.tab_downloads'))
+      Row() {
+        // ≥lg 用户偏好不为 'bottom' 时挂载 SideBar（贴屏幕左边缘，240vp 固定）
+        if (Layout.resolveNavStyle(this.bp, this.navStyle) === 'side') {
+          SideBar({
+            currentIndex: this.currentIndex,
+            onSelect: (i: number): void => {
+              this.tabsController.changeIndex(i);
+            },
+            onSettingsTap: (): void => this.goSettings(),
+          });
         }
-        .width('100%')
-        .height('100%')
-        .barHeight(0)
-        .barMode(BarMode.Fixed)
-        .scrollable(false)
-        .onChange((index: number) => {
-          this.currentIndex = index;
-        })
-        .backgroundColor(AppColors.bgCanvas);
 
-        // Floating capsule tab bar
-        Column() {
-          Row() {
-            this.floatingTabItem($r('app.string.tab_home'), $r('app.media.ic_tab_home'), $r('app.media.ic_tab_home_filled'), 0);
-            this.floatingTabItem($r('app.string.tab_search'), $r('app.media.ic_tab_search'), $r('app.media.ic_tab_search_filled'), 1);
-            this.floatingTabItem($r('app.string.tab_favorites'), $r('app.media.ic_tab_favorites'), $r('app.media.ic_tab_favorites_filled'), 2);
-            this.floatingTabItem($r('app.string.tab_downloads'), $r('app.media.ic_tab_downloads'), $r('app.media.ic_tab_downloads_filled'), 3);
+        // Tabs 铺满剩余宽度（或整屏宽，底栏模式下）
+        Stack({ alignContent: Alignment.Bottom }) {
+          Tabs({ barPosition: BarPosition.End, index: this.currentIndex, controller: this.tabsController }) {
+            TabContent() {
+              HomeTab({
+                onSearchTap: (): void => this.switchToSearch(),
+                onSettingsTap: (): void => this.goSettings(),
+              });
+            }
+            .tabBar($r('app.string.tab_home'))
+
+            TabContent() {
+              SearchTab({ onOpenDomainSelector: (): void => this.openDomainSelector() });
+            }
+            .tabBar($r('app.string.tab_search'))
+
+            TabContent() {
+              FavoritesTab();
+            }
+            .tabBar($r('app.string.tab_favorites'))
+
+            TabContent() {
+              DownloadsTab();
+            }
+            .tabBar($r('app.string.tab_downloads'))
           }
           .width('100%')
-          .height(56)
-          .borderRadius(28)
-          .backgroundBlurStyle(BlurStyle.Thin, {
-            colorMode: ThemeColorMode.SYSTEM,
-            adaptiveColor: AdaptiveColor.DEFAULT,
+          .height('100%')
+          .barHeight(0)
+          .barMode(BarMode.Fixed)
+          .scrollable(false)
+          .onChange((index: number) => {
+            this.currentIndex = index;
           })
-          .shadow({ radius: 16, color: '#1A000000', offsetX: 0, offsetY: 4 });
+          .backgroundColor(AppColors.bgCanvas);
+
+          // Floating capsule tab bar —— 仅当导航解析为 bottom 时显示
+          if (Layout.resolveNavStyle(this.bp, this.navStyle) === 'bottom') {
+            Row() {
+              Row() {
+                this.floatingTabItem($r('app.string.tab_home'), $r('app.media.ic_tab_home'), $r('app.media.ic_tab_home_filled'), 0);
+                this.floatingTabItem($r('app.string.tab_search'), $r('app.media.ic_tab_search'), $r('app.media.ic_tab_search_filled'), 1);
+                this.floatingTabItem($r('app.string.tab_favorites'), $r('app.media.ic_tab_favorites'), $r('app.media.ic_tab_favorites_filled'), 2);
+                this.floatingTabItem($r('app.string.tab_downloads'), $r('app.media.ic_tab_downloads'), $r('app.media.ic_tab_downloads_filled'), 3);
+              }
+              .width('100%')
+              .height(56)
+              .constraintSize({ maxWidth: 480 })
+              .borderRadius(28)
+              .backgroundBlurStyle(BlurStyle.Thin, {
+                colorMode: ThemeColorMode.SYSTEM,
+                adaptiveColor: AdaptiveColor.DEFAULT,
+              })
+              .shadow({ radius: 16, color: '#1A000000', offsetX: 0, offsetY: 4 });
+            }
+            .width('100%')
+            .justifyContent(FlexAlign.Center)
+            .padding({ left: 12, right: 12, bottom: this.navBarHeight + 12 });
+          }
         }
-        .width('100%')
-        .padding({ left: 12, right: 12, bottom: this.navBarHeight + 12 });
+        .layoutWeight(1)
+        .height('100%');
       }
       .width('100%')
-      .height('100%');
+      .height('100%')
+      .backgroundColor(AppColors.bgCanvas);
     }
     .hideTitleBar(true)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])

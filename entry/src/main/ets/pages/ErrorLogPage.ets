@@ -10,9 +10,12 @@
 import { promptAction } from '@kit.ArkUI';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
+import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
+import { Layout } from '../utils/Layout';
 import { ErrorReportStore, ErrorReport } from '../storage/ErrorReportStore';
 import { EmptyState } from '../components/EmptyState';
 import { AppRouter } from '../utils/AppRouter';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'ErrorLogPage';
@@ -20,6 +23,7 @@ const TAG: string = 'ErrorLogPage';
 @Component
 export struct ErrorLogPage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @State private reports: ErrorReport[] = [];
   @State private expanded: Set<number> = new Set<number>();
 
@@ -44,7 +48,7 @@ export struct ErrorLogPage {
       alignment: DialogAlignment.Center,
       primaryButton: {
         value: $r('app.string.common_ok'),
-        fontColor: '#E53935',
+        fontColor: AppColors.error,
         action: (): void => {
           ErrorReportStore.clear()
             .then((): void => {
@@ -54,13 +58,13 @@ export struct ErrorLogPage {
             })
             .catch((e: Error): void => {
               Logger.w(TAG, `clear failed: ${e.message}`);
-              ErrorLogPage.toast(`清除失败：${e.message}`);
+              ErrorLogPage.toastText(I18n.format('err_op_failed_fmt', [I18n.ts('settings_error_log_clear')]) + ': ' + e.message);
             });
         },
       },
       secondaryButton: {
         value: $r('app.string.common_cancel'),
-        fontColor: '#666666',
+        fontColor: AppColors.textSecondary,
         action: (): void => {},
       },
     });
@@ -69,6 +73,15 @@ export struct ErrorLogPage {
   private static toast(msg: ResourceStr): void {
     try {
       const opts: promptAction.ShowToastOptions = { message: msg, duration: 1500 };
+      promptAction.openToast(opts);
+    } catch {
+      // ignore
+    }
+  }
+
+  private static toastText(msg: string): void {
+    try {
+      const opts: promptAction.ShowToastOptions = { message: msg, duration: 1800 };
       promptAction.openToast(opts);
     } catch {
       // ignore
@@ -181,7 +194,7 @@ export struct ErrorLogPage {
           }
           .layoutWeight(1)
           .width('100%')
-          .padding({ left: AppSpace.s16, right: AppSpace.s16 })
+          .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp) })
           .scrollBar(BarState.Off);
         }
       }

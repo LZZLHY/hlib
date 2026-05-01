@@ -28,6 +28,7 @@ export class Routes {
   static readonly SETTINGS: string = 'Settings';
   static readonly HISTORY: string = 'History';
   static readonly ERROR_LOG: string = 'ErrorLog';
+  static readonly PRIVACY: string = 'Privacy';
 }
 
 /** BookDetailPage 入参 */

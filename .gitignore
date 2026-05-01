@@ -10,3 +10,10 @@
 /.clang-tidy
 **/.test
 /.appanalyzer
+/tmp
+
+# 本地签名配置（含证书路径与密码），切勿入库
+build-profile.signing.local.json5
+*.p12
+*.p7b
+*.cer

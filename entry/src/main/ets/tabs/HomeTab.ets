@@ -15,13 +15,15 @@
 
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
-import { AppStorageKeys } from '../storage/AppStorageKeys';
+import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
+import { Layout } from '../utils/Layout';
 import { Book } from '../model/Book';
 import { User } from '../model/User';
 import { HomeVM, LoadMoreResult } from '../viewmodel/HomeVM';
 import { VerticalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
 import { AppRouter, Routes, BookDetailParams } from '../utils/AppRouter';
+import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'HomeTab';
@@ -34,6 +36,7 @@ export struct HomeTab {
   onSettingsTap: () => void = (): void => {};
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.USER) private user: User | null = null;
   @StorageLink(AppStorageKeys.HOME_RECOMMENDED) private recommended: Book[] = [];
   @StorageLink(AppStorageKeys.HOME_POPULAR) private popular: Book[] = [];
@@ -117,7 +120,7 @@ export struct HomeTab {
     if (this.user !== null && this.user.name.length > 0) {
       return this.user.name;
     }
-    return '书友';
+    return I18n.ts('home_user_default');
   }
 
   private goDetail(book: Book): void {
@@ -324,7 +327,7 @@ export struct HomeTab {
         this.segmentTabs();
       }
       .width('100%')
-      .padding({ left: 28, right: 28, bottom: 12 })
+      .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), bottom: 12 })
       .backgroundBlurStyle(BlurStyle.Thin, {
         colorMode: ThemeColorMode.SYSTEM,
         adaptiveColor: AdaptiveColor.DEFAULT,
@@ -346,8 +349,15 @@ struct BookGridView {
   @Prop loading: boolean = false;
   @Prop hasMore: boolean = false;
   @Prop loadingMore: boolean = false;
+  @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   onBookTap: (book: Book) => void = (_: Book): void => {};
   onLoadMore: () => void = (): void => {};
+
+  /** 每格宽度（字符串百分比）：sm=33.3%, md=25%, lg=20%, xl=16.66%。 */
+  private colWidth(): string {
+    const n: number = Layout.gridCols(this.bp);
+    return `${(100 / n).toFixed(4)}%`;
+  }
 
   build() {
     Column() {
@@ -365,12 +375,12 @@ struct BookGridView {
         .height(180)
         .justifyContent(FlexAlign.Center);
       } else {
-        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.SpaceBetween }) {
+        Flex({ wrap: FlexWrap.Wrap, justifyContent: FlexAlign.Start }) {
           ForEach(this.books, (book: Book) => {
             Column() {
               VerticalBookCard({ book: book, onTap: (b: Book): void => this.onBookTap(b) });
             }
-            .width('33.3%')
+            .width(this.colWidth())
             .alignItems(HorizontalAlign.Center)
             .margin({ bottom: 16 })
           }, (book: Book, idx: number) => `${book.id}_${idx}`);

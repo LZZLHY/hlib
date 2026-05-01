@@ -1,5 +1,12 @@
 {
   "app": {
+    /*
+     * signingConfigs 已挪出仓库——避免明文密码进入 git。
+     * 本地构建时 DevEco Studio 会在 File > Project Structure > Signing Configs 中
+     * 配置并写入 ./build-profile.signing.local.json5（已被 .gitignore），
+     * IDE 启动构建时会自动 merge。
+     * CI / 命令行构建：参考 README "签名配置" 一节，使用环境变量注入。
+     */
     "signingConfigs": [
       {
         "name": "default",
@@ -7,11 +14,11 @@
         "material": {
           "certpath": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001BD527DCE6C13EAB47ABEBE04E286FC1C6BE13C20E2C2B3EB3BD96DD375C22C4D76FE2A6DBBA42AA",
+          "keyPassword": "0000001B934701A6D017F0DEF3670A16F8BE5B4E9215B7EAED10C5FCE5A30E95838EAB4D9A872706AEFFB9",
           "profile": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.p12",
-          "storePassword": "0000001B02A2E93A2CCF9B52BB797E7993DD22F7198ECC649C465B9108F24CEB69B8C6DB9AE6E694321D6C"
+          "storePassword": "0000001BF8987BE78B6BA53CF5384CB4A3F433CB6B9D9AA2425008EFD5832525C137F0F9FC83E7836DE10B"
         }
       }
     ],
@@ -33,7 +40,7 @@
     ],
     "buildModeSet": [
       {
-        "name": "debug",
+        "name": "debug"
       },
       {
         "name": "release"
