@@ -418,6 +418,10 @@
     { "name": "update_dialog_title",          "value": "Update available" },
     { "name": "update_dialog_msg_fmt",        "value": "New version: %s\n\n%s" },
     { "name": "update_go",                    "value": "Go to download" },
-    { "name": "update_check_failed",          "value": "Update check failed, try again later" }
+    { "name": "update_check_failed",          "value": "Update check failed, try again later" },
+
+    { "name": "reason_file_access_persist",   "value": "Used to save books to the public Downloads folder you choose and keep write access to it across restarts" },
+    { "name": "settings_dir_public_denied",   "value": "Write permission not granted; kept the previous download directory" },
+    { "name": "settings_dir_folder_phone_only", "value": "Public folder selection is only supported on PC / 2in1; use the default directory on phone / tablet" }
   ]
 }

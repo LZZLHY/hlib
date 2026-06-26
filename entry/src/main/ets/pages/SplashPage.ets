@@ -18,6 +18,7 @@ import { HttpClient } from '../api/HttpClient';
 import { DomainManifest } from '../api/DomainManifest';
 import { AuthVM } from '../viewmodel/AuthVM';
 import { SpeedTestVM } from '../viewmodel/SpeedTestVM';
+import { UpdateChecker } from '../viewmodel/UpdateChecker';
 import { AppRouter, Routes } from '../utils/AppRouter';
 import { PrivacyConsentDialog } from '../components/PrivacyConsentDialog';
 
@@ -148,6 +149,11 @@ export struct SplashPage {
     SpeedTestVM.testAll(false).catch((err: Object) => {
       const e: Error = err as Error;
       Logger.w(TAG, `bg speedtest failed: ${e.message}`);
+    });
+
+    // 启动静默检查更新（24h 节流，结果写 AppStorage 供首页/设置红点订阅）
+    UpdateChecker.autoCheck().catch((err: Object): void => {
+      Logger.w(TAG, `auto update check failed: ${(err as Error).message}`);
     });
 
     await SplashPage.delay(700);

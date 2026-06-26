@@ -33,6 +33,12 @@ export class AppStorageKeys {
   /** 应用版本号（versionName），EntryAbility 启动时通过 bundleManager 读取写入。 */
   static readonly APP_VERSION: string      = 'state_appVersion';
 
+  // ── 检查更新（自动静默检查写入；UI 用 @StorageProp 订阅显示红点） ──
+  /** 是否有可用新版本（自动检查结果，含缓存回灌）。 */
+  static readonly UPDATE_AVAILABLE: string = 'state_updateAvailable';
+  /** 最新版本的 versionName（用于设置页副文案显示）。 */
+  static readonly UPDATE_LATEST_NAME: string = 'state_updateLatestName';
+
   // ── 首页缓存 ──
   static readonly HOME_RECOMMENDED: string = 'state_homeRecommended'; // Book[]
   static readonly HOME_POPULAR: string     = 'state_homePopular';     // Book[]

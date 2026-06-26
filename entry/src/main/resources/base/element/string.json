@@ -418,6 +418,10 @@
     { "name": "update_dialog_title",          "value": "发现新版本" },
     { "name": "update_dialog_msg_fmt",        "value": "新版本：%s\n\n%s" },
     { "name": "update_go",                    "value": "前往下载" },
-    { "name": "update_check_failed",          "value": "检查更新失败，请稍后再试" }
+    { "name": "update_check_failed",          "value": "检查更新失败，请稍后再试" },
+
+    { "name": "reason_file_access_persist",   "value": "用于将书籍保存到你选择的公共下载目录，并在重启后保持该目录的写入授权" },
+    { "name": "settings_dir_public_denied",   "value": "未获得目录写入授权，已保留原下载目录" },
+    { "name": "settings_dir_folder_phone_only", "value": "选择公共文件夹仅支持 PC / 2in1 设备；手机 / 平板请使用默认目录" }
   ]
 }

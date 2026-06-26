@@ -38,6 +38,8 @@ export struct HomeTab {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
   @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.USER) private user: User | null = null;
+  /** 有可用更新时在右上齿轮显示红点（自动检查写入）。 */
+  @StorageProp(AppStorageKeys.UPDATE_AVAILABLE) private updateAvailable: boolean = false;
   /** 生效线路：手动切换或测速后自动择优都会改它 → 触发首页重载，保证内容来自可用节点。 */
   @StorageProp(AppStorageKeys.DOMAIN) @Watch('onDomainChanged') private activeDomain: string = '';
   @StorageLink(AppStorageKeys.HOME_RECOMMENDED) private recommended: Book[] = [];
@@ -162,13 +164,25 @@ export struct HomeTab {
       .alignItems(HorizontalAlign.Start)
       .layoutWeight(1);
 
-      Button({ type: ButtonType.Circle, stateEffect: true }) {
-        Image($r('app.media.ic_settings')).width(20).height(20);
+      Stack({ alignContent: Alignment.TopEnd }) {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          Image($r('app.media.ic_settings')).width(20).height(20);
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor(AppColors.surfaceAlt)
+        .onClick(() => this.onSettingsTap());
+
+        if (this.updateAvailable) {
+          Circle({ width: 9, height: 9 })
+            .fill(AppColors.error)
+            .stroke(AppColors.bgCanvas)
+            .strokeWidth(1.5)
+            .margin({ top: 1, right: 1 });
+        }
       }
       .width(40)
-      .height(40)
-      .backgroundColor(AppColors.surfaceAlt)
-      .onClick(() => this.onSettingsTap());
+      .height(40);
     }
     .width('100%');
   }

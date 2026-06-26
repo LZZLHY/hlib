@@ -40,6 +40,7 @@ import { UrlUtils } from '../utils/UrlUtils';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { Redact } from '../utils/Redact';
+import { PublicDirAccess } from '../utils/PublicDirAccess';
 import { FileTypes } from './download/FileTypes';
 import { FileValidator } from './download/FileValidator';
 import { DownloadPaths } from './download/DownloadPaths';
@@ -189,6 +190,12 @@ export class DownloadVM {
       throw new Error('no_download_link');
     }
     Logger.i(TAG, `start download(${book.id}) url=${Redact.url(absoluteUrl)}`);
+
+    // 若下载到用户选择的公共目录（file:// URI），写入前唤醒其持久化写授权（FILE_ACCESS_PERSIST）。
+    const dlDir: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
+    if (dlDir !== undefined && PublicDirAccess.isManagedUri(dlDir)) {
+      await PublicDirAccess.activateWrite(dlDir);
+    }
 
     // 打开目标文件（READ_WRITE | CREATE | TRUNC）
     let file: fileIo.File;

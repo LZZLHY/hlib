@@ -18,6 +18,16 @@
       },
       {
         "name": "ohos.permission.GET_NETWORK_INFO"
+      },
+      {
+        "name": "ohos.permission.FILE_ACCESS_PERSIST",
+        "reason": "$string:reason_file_access_persist",
+        "usedScene": {
+          "abilities": [
+            "EntryAbility"
+          ],
+          "when": "always"
+        }
       }
     ],
     "abilities": [

@@ -35,6 +35,7 @@ import { PreferencesStore } from '../storage/PreferencesStore';
 import { DomainSelectorDialog } from '../components/DomainSelectorDialog';
 import { CustomDomainDialog } from '../components/CustomDomainDialog';
 import { AppRouter, Routes } from '../utils/AppRouter';
+import { PublicDirAccess } from '../utils/PublicDirAccess';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
@@ -54,6 +55,9 @@ export struct SettingsPage {
   @StorageLink(AppStorageKeys.NAV_STYLE) private navStylePref: NavStyle = 'auto';
 
   @StorageProp(AppStorageKeys.APP_VERSION) private appVersion: string = '1.0.0';
+  /** 自动检查写入的「有新版」红点状态与最新版本名。 */
+  @StorageProp(AppStorageKeys.UPDATE_AVAILABLE) private updateAvailable: boolean = false;
+  @StorageProp(AppStorageKeys.UPDATE_LATEST_NAME) private updateLatestName: string = '';
 
   // ── 网络加固：代理与 Manifest UI 状态 ──
   @State private proxyEnabled: boolean = false;
@@ -76,6 +80,10 @@ export struct SettingsPage {
     this.loadNetworkPrefs().catch((e: Object): void => {
       Logger.w(TAG, `loadNetworkPrefs failed: ${(e as Error).message}`);
     });
+    // 进入设置页时，把自动检查得到的「有新版」状态反映到「检查更新」副文案
+    if (this.updateAvailable && this.updateLatestName.length > 0) {
+      this.updateHint = I18n.format('update_found_fmt', [this.updateLatestName]);
+    }
   }
 
   private async loadNetworkPrefs(): Promise<void> {
@@ -204,7 +212,14 @@ export struct SettingsPage {
         if (uris.length === 0) {
           return; // 用户取消
         }
-        this.downloadPath = uris[0];
+        const folderUri: string = uris[0];
+        // 关键：持久化该目录的写入授权（FILE_ACCESS_PERSIST），否则重启后失去权限、下载会失败
+        const persisted: boolean = await PublicDirAccess.persistWrite(folderUri);
+        if (!persisted) {
+          SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
+          return; // 未拿到持久授权则不切换，避免之后写入失败
+        }
+        this.downloadPath = folderUri;
         SettingsPage.toastResource($r('app.string.settings_dir_public_done'));
       } catch (e) {
         const be: BusinessError = e as BusinessError;
@@ -1067,11 +1082,28 @@ export struct SettingsPage {
 
       Divider().color(AppColors.divider).strokeWidth(0.5).margin({ left: AppSpace.s16 });
 
-      this.settingRow(
-        $r('app.string.settings_check_update'),
-        this.updateHint,
-        (): void => this.onCheckUpdate(),
-      );
+      // 检查更新行（有新版时标红点）
+      Row() {
+        Text($r('app.string.settings_check_update'))
+          .fontSize(AppFontSize.body)
+          .fontColor(AppColors.textPrimary);
+        if (this.updateAvailable) {
+          Circle({ width: 8, height: 8 })
+            .fill(AppColors.error)
+            .margin({ left: 6 });
+        }
+        Blank().layoutWeight(1);
+        Text(this.updateHint)
+          .fontSize(AppFontSize.bodySm)
+          .fontColor(AppColors.textTertiary)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+          .margin({ right: 4 });
+        Image($r('app.media.ic_chevron_right')).width(16).height(16);
+      }
+      .width('100%')
+      .padding({ left: AppSpace.s16, right: AppSpace.s16, top: 14, bottom: 14 })
+      .onClick((): void => this.onCheckUpdate());
     }
     .width('100%')
     .backgroundColor(AppColors.surface)

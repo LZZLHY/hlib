@@ -1,7 +1,7 @@
 {
-  "versionCode": 1000004,
+  "versionCode": 1000005,
   "versionName": "1.0.1",
   "releaseUrl": "https://github.com/LZZLHY/hlib/releases/latest",
-  "notes": "重构下载 / 网络模块，新增日志脱敏与检查更新；移除公开仓库泄漏项（签名密码 / 逆向转储）；README 重构。",
+  "notes": "新增启动自动检查更新（红点提示）；公共下载目录持久化授权；重构下载/网络模块、日志脱敏；移除公开仓库泄漏项。",
   "changelogUrl": "https://github.com/LZZLHY/hlib/blob/master/docs/CHANGELOG.md"
 }
