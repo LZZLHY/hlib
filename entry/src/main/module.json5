@@ -28,16 +28,6 @@
           ],
           "when": "inuse"
         }
-      },
-      {
-        "name": "ohos.permission.FILE_ACCESS_PERSIST",
-        "reason": "$string:reason_file_persist",
-        "usedScene": {
-          "abilities": [
-            "EntryAbility"
-          ],
-          "when": "inuse"
-        }
       }
     ],
     "abilities": [

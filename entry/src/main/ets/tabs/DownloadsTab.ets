@@ -40,9 +40,9 @@ export struct DownloadsTab {
   @State private currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();
 
-  /** 是否下载到公共目录（沙箱外）。否则视为沙箱内。 */
+  /** 是否为「平板静默公共目录」场景（仅此时下载文件真的在公共目录，头部显示“打开下载文件夹”）。 */
   private isPublicDir(): boolean {
-    return this.downloadPath === 'public';
+    return this.downloadPath === 'public' && PublicDownloadDir.isTabletSilent();
   }
 
   aboutToAppear(): void {
@@ -119,23 +119,9 @@ export struct DownloadsTab {
   }
 
   private async doExport(ctx: common.UIAbilityContext, items: DownloadHistoryItem[]): Promise<void> {
-    const dir: string = await PublicDownloadDir.ensureDir(ctx);
-    if (dir.length === 0) {
-      DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
-      return;
-    }
-    // 确保目录存在
-    try {
-      if (!fileIo.accessSync(dir)) {
-        fileIo.mkdirSync(dir, true);
-      }
-    } catch (e) {
-      Logger.w(TAG, `mkdir failed: ${(e as Error).message}`);
-      DownloadsTab.toast(I18n.ts('downloads_export_none'));
-      return;
-    }
-
-    let count: number = 0;
+    // 收集仍存在的源文件
+    const srcs: string[] = [];
+    const names: string[] = [];
     for (const item of items) {
       const src: string = item.filePath !== undefined ? item.filePath : '';
       if (src.length === 0) {
@@ -145,20 +131,68 @@ export struct DownloadsTab {
         if (!fileIo.accessSync(src)) {
           continue;
         }
-        const slash: number = src.lastIndexOf('/');
-        const base: string = slash >= 0 ? src.substring(slash + 1) : src;
-        fileIo.copyFileSync(src, `${dir}/${base}`);
-        count++;
       } catch (e) {
-        Logger.w(TAG, `copy failed for ${Format.date(item.downloadedAt)}: ${(e as Error).message}`);
+        continue;
       }
+      const slash: number = src.lastIndexOf('/');
+      srcs.push(src);
+      names.push(slash >= 0 ? src.substring(slash + 1) : src);
+    }
+    if (srcs.length === 0) {
+      DownloadsTab.toast(I18n.ts('downloads_export_none'));
+      return;
     }
 
-    if (count > 0) {
-      DownloadsTab.toast(I18n.format('downloads_export_done_fmt', [count]));
-    } else {
-      DownloadsTab.toast(I18n.ts('downloads_export_none'));
+    if (PublicDownloadDir.needsPicker()) {
+      // 手机：DocumentViewPicker 单弹窗批量授权，立即通过返回的 URI 写入
+      const uris: string[] = await PublicDownloadDir.saveFilesViaPicker(ctx, names);
+      if (uris.length === 0) {
+        DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
+        return;
+      }
+      let count: number = 0;
+      const n: number = Math.min(uris.length, srcs.length);
+      for (let i = 0; i < n; i++) {
+        try {
+          PublicDownloadDir.copyPathToUri(srcs[i], uris[i]);
+          count++;
+        } catch (e) {
+          Logger.w(TAG, `copy to uri failed: ${(e as Error).message}`);
+        }
+      }
+      DownloadsTab.toast(count > 0
+        ? I18n.format('downloads_export_done_fmt', [count])
+        : I18n.ts('downloads_export_none'));
+      return;
     }
+
+    // 平板：申请权限拿到公共目录原始路径，按路径拷贝
+    const dir: string = await PublicDownloadDir.ensureDir(ctx);
+    if (dir.length === 0) {
+      DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
+      return;
+    }
+    try {
+      if (!fileIo.accessSync(dir)) {
+        fileIo.mkdirSync(dir, true);
+      }
+    } catch (e) {
+      Logger.w(TAG, `mkdir failed: ${(e as Error).message}`);
+      DownloadsTab.toast(I18n.ts('downloads_export_none'));
+      return;
+    }
+    let count: number = 0;
+    for (let i = 0; i < srcs.length; i++) {
+      try {
+        fileIo.copyFileSync(srcs[i], `${dir}/${names[i]}`);
+        count++;
+      } catch (e) {
+        Logger.w(TAG, `copy failed: ${(e as Error).message}`);
+      }
+    }
+    DownloadsTab.toast(count > 0
+      ? I18n.format('downloads_export_done_fmt', [count])
+      : I18n.ts('downloads_export_none'));
   }
 
   private onRemoveHistory(item: DownloadHistoryItem): void {

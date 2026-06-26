@@ -213,7 +213,7 @@ export struct SettingsPage {
   }
 
   private currentDownloadDir(): DownloadDir {
-    return this.downloadPath === 'public' ? 'public' : 'default';
+    return (this.downloadPath === 'public' && PublicDownloadDir.isTabletSilent()) ? 'public' : 'default';
   }
 
   private confirmClearCache(): void {
@@ -867,11 +867,19 @@ export struct SettingsPage {
           .alignSelf(ItemAlign.Start);
         Row({ space: 8 }) {
           this.dirPill('default', $r('app.string.settings_download_dir_default'));
-          this.dirPill('public', $r('app.string.settings_download_dir_public'));
+          if (PublicDownloadDir.isTabletSilent()) {
+            this.dirPill('public', $r('app.string.settings_download_dir_public'));
+          }
         }
         .width('100%');
         if (this.currentDownloadDir() === 'public') {
           Text(PublicDownloadDir.resolveDir())
+            .fontSize(AppFontSize.caption)
+            .fontColor(AppColors.textTertiary)
+            .maxLines(2)
+            .textOverflow({ overflow: TextOverflow.Ellipsis });
+        } else if (PublicDownloadDir.needsPicker()) {
+          Text($r('app.string.settings_download_dir_phone_hint'))
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.textTertiary)
             .maxLines(2)

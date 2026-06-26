@@ -157,6 +157,7 @@
     { "name": "settings_download_dir_default",  "value": "Default (App sandbox)" },
     { "name": "settings_download_dir_cache",    "value": "Cache directory" },
     { "name": "settings_download_dir_public",   "value": "Public Downloads" },
+    { "name": "settings_download_dir_phone_hint", "value": "On phones, books download into the app; use Export on the Downloads page to save them to the system Downloads folder" },
     { "name": "settings_clear_cache",           "value": "Clear cache" },
     { "name": "settings_clear_cache_msg",       "value": "This will clear local indexes for favorites and download history (downloaded files will not be deleted)." },
     { "name": "settings_clear_cache_done",      "value": "Cache cleared" },
@@ -421,7 +422,6 @@
     { "name": "update_check_failed",          "value": "Update check failed, try again later" },
 
     { "name": "reason_download_dir",          "value": "Used to save books into an app-named folder under the public Downloads directory, so you can find them in Files" },
-    { "name": "reason_file_persist",          "value": "Used to remember the download folder you picked, so you don't have to choose it again for every download" },
     { "name": "settings_dir_public_denied",   "value": "Download-directory permission not granted; kept the sandbox directory" },
     { "name": "settings_dir_public_unsupported", "value": "Saving to the public Downloads folder is not supported on this device" },
 

@@ -25,12 +25,13 @@ export class DownloadPaths {
    */
   static buildFilePath(ctx: common.UIAbilityContext, filename: string): string {
     const custom: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
-    if (custom === 'public') {
+    // 仅平板静默路线可按原始路径写公共目录；手机端公共目录只能经 picker 导出，故下载一律落沙箱。
+    if (custom === 'public' && PublicDownloadDir.isTabletSilent()) {
       const dir: string = PublicDownloadDir.resolveDir();
       if (dir.length > 0 && PublicDownloadDir.isWritable(dir)) {
         return `${dir}/${filename}`;
       }
-      // 不支持 / 未授权 / 权限失效 → 回退沙箱
+      // 取不到 / 未授权 → 回退沙箱
       return `${ctx.filesDir}/Downloads/${filename}`;
     }
     return `${ctx.filesDir}/Downloads/${filename}`;

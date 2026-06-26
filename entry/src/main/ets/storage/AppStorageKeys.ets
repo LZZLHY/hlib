@@ -35,12 +35,6 @@ export class AppStorageKeys {
   /** 应用包名（bundleName），用于公共下载目录的应用专属子目录。 */
   static readonly BUNDLE_NAME: string      = 'state_bundleName';
 
-  // ── 公共下载目录（手机端经 DocumentViewPicker 选定一次后持久化复用） ──
-  /** 公共下载目录的可写绝对路径：平板留空（用 Environment 实时解析），手机为 picker 选定的 Download/<包名> 路径。 */
-  static readonly PUBLIC_DOWNLOAD_DIR: string = 'pref_publicDownloadDir';
-  /** picker 授予的目录 URI，用于 fileShare 持久化/激活权限（跨重启复用）。 */
-  static readonly PUBLIC_DOWNLOAD_URI: string = 'pref_publicDownloadUri';
-
   // ── 检查更新（自动静默检查写入；UI 用 @StorageProp 订阅显示红点） ──
   /** 是否有可用新版本（自动检查结果，含缓存回灌）。 */
   static readonly UPDATE_AVAILABLE: string = 'state_updateAvailable';
