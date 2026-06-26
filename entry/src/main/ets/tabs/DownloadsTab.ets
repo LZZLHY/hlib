@@ -11,7 +11,7 @@
 
 import { common, Want, wantConstant } from '@kit.AbilityKit';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { fileUri } from '@kit.CoreFileKit';
+import { fileUri, fileIo } from '@kit.CoreFileKit';
 import { promptAction } from '@kit.ArkUI';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
@@ -36,9 +36,15 @@ export struct DownloadsTab {
   @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.DOWNLOAD_TASKS) private active: DownloadTask[] = [];
   @StorageProp(AppStorageKeys.DOWNLOAD_HISTORY) private history: DownloadHistoryItem[] = [];
+  @StorageProp(AppStorageKeys.DOWNLOAD_PATH) private downloadPath: string = '';
 
   @State private currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();
+
+  /** 是否下载到公共目录（沙箱外）。否则视为沙箱内。 */
+  private isPublicDir(): boolean {
+    return this.downloadPath === 'public';
+  }
 
   aboutToAppear(): void {
     DownloadVM.refreshHistory().catch((e: Error) => {
@@ -116,6 +122,76 @@ export struct DownloadsTab {
     });
   }
 
+  /** 沙箱内场景：把已完成文件导出到公共下载目录（平板支持）。 */
+  private onExportDownloads(): void {
+    const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    if (ctx === undefined || ctx === null) {
+      DownloadsTab.toast(I18n.ts('downloads_open_folder_failed'));
+      return;
+    }
+    const items: DownloadHistoryItem[] = this.history;
+    if (items === null || items === undefined || items.length === 0) {
+      DownloadsTab.toast(I18n.ts('downloads_export_empty'));
+      return;
+    }
+    this.doExport(ctx, items).catch((e: Error): void => {
+      Logger.w(TAG, `export failed: ${e.message}`);
+      DownloadsTab.toast(I18n.ts('downloads_export_none'));
+    });
+  }
+
+  private async doExport(ctx: common.UIAbilityContext, items: DownloadHistoryItem[]): Promise<void> {
+    if (!PublicDownloadDir.isSupported()) {
+      DownloadsTab.toast(I18n.ts('settings_dir_public_unsupported'));
+      return;
+    }
+    const granted: boolean = await PublicDownloadDir.requestPermission(ctx);
+    if (!granted) {
+      DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
+      return;
+    }
+    const dir: string = PublicDownloadDir.resolveDir();
+    if (dir.length === 0) {
+      DownloadsTab.toast(I18n.ts('settings_dir_public_unsupported'));
+      return;
+    }
+    // 确保目录存在
+    try {
+      if (!fileIo.accessSync(dir)) {
+        fileIo.mkdirSync(dir, true);
+      }
+    } catch (e) {
+      Logger.w(TAG, `mkdir failed: ${(e as Error).message}`);
+      DownloadsTab.toast(I18n.ts('downloads_export_none'));
+      return;
+    }
+
+    let count: number = 0;
+    for (const item of items) {
+      const src: string = item.filePath !== undefined ? item.filePath : '';
+      if (src.length === 0) {
+        continue;
+      }
+      try {
+        if (!fileIo.accessSync(src)) {
+          continue;
+        }
+        const slash: number = src.lastIndexOf('/');
+        const base: string = slash >= 0 ? src.substring(slash + 1) : src;
+        fileIo.copyFileSync(src, `${dir}/${base}`);
+        count++;
+      } catch (e) {
+        Logger.w(TAG, `copy failed for ${Format.date(item.downloadedAt)}: ${(e as Error).message}`);
+      }
+    }
+
+    if (count > 0) {
+      DownloadsTab.toast(I18n.format('downloads_export_done_fmt', [count]));
+    } else {
+      DownloadsTab.toast(I18n.ts('downloads_export_none'));
+    }
+  }
+
   private onRemoveHistory(item: DownloadHistoryItem): void {
     this.getUIContext().showAlertDialog({
       title: $r('app.string.downloads_delete_title'),
@@ -161,17 +237,30 @@ export struct DownloadsTab {
 
       Button() {
         Row({ space: 4 }) {
-          Image($r('app.media.ic_open_file')).width(14).height(14);
-          Text($r('app.string.settings_open_download_folder'))
-            .fontSize(AppFontSize.bodySm)
-            .fontColor(AppColors.brandPrimary);
+          if (this.isPublicDir()) {
+            Image($r('app.media.ic_open_file')).width(14).height(14);
+            Text($r('app.string.settings_open_download_folder'))
+              .fontSize(AppFontSize.bodySm)
+              .fontColor(AppColors.brandPrimary);
+          } else {
+            Image($r('app.media.ic_share')).width(14).height(14);
+            Text($r('app.string.downloads_export_files'))
+              .fontSize(AppFontSize.bodySm)
+              .fontColor(AppColors.brandPrimary);
+          }
         }
       }
       .height(32)
       .padding({ left: 12, right: 12 })
       .backgroundColor(AppColors.brandPrimaryLight)
       .borderRadius(AppRadius.pill)
-      .onClick(() => this.onOpenDownloadFolder());
+      .onClick(() => {
+        if (this.isPublicDir()) {
+          this.onOpenDownloadFolder();
+        } else {
+          this.onExportDownloads();
+        }
+      });
     }
     .width('100%')
     .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s16, bottom: AppSpace.s8 });

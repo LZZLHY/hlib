@@ -422,6 +422,11 @@
 
     { "name": "reason_download_dir",          "value": "用于将书籍保存到公共「下载」目录下以应用命名的专属文件夹，便于你在文件管理中查看" },
     { "name": "settings_dir_public_denied",   "value": "未授予下载目录权限，已保留沙箱目录" },
-    { "name": "settings_dir_public_unsupported", "value": "当前设备不支持保存到公共下载目录" }
+    { "name": "settings_dir_public_unsupported", "value": "当前设备不支持保存到公共下载目录" },
+
+    { "name": "downloads_export_files",       "value": "导出文件" },
+    { "name": "downloads_export_empty",       "value": "没有可导出的文件" },
+    { "name": "downloads_export_done_fmt",    "value": "已导出 %d 个文件到公共下载目录" },
+    { "name": "downloads_export_none",        "value": "没有文件被导出（可能文件已被删除）" }
   ]
 }

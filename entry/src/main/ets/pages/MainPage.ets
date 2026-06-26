@@ -152,11 +152,43 @@ export struct MainPage {
     return true;
   };
 
+  /** 是否使用侧边栏导航（侧栏模式下不应再出现底部悬浮栏）。 */
+  private useSideNav(): boolean {
+    return Layout.resolveNavStyle(this.bp, this.navStyle) === 'side';
+  }
+
+  /** 4 个 Tab 面板（侧栏 / 底栏两种布局共用，避免重复）。 */
+  @Builder
+  private tabPanels() {
+    TabContent() {
+      HomeTab({
+        onSearchTap: (): void => this.switchToSearch(),
+        onSettingsTap: (): void => this.goSettings(),
+      });
+    }
+    .tabBar(this.bottomBarItem(0, $r('app.media.ic_tab_home'), $r('app.media.ic_tab_home_filled'), $r('app.string.tab_home')))
+
+    TabContent() {
+      SearchTab({ onOpenDomainSelector: (): void => this.openDomainSelector() });
+    }
+    .tabBar(this.bottomBarItem(1, $r('app.media.ic_tab_search'), $r('app.media.ic_tab_search_filled'), $r('app.string.tab_search')))
+
+    TabContent() {
+      FavoritesTab();
+    }
+    .tabBar(this.bottomBarItem(2, $r('app.media.ic_tab_favorites'), $r('app.media.ic_tab_favorites_filled'), $r('app.string.tab_favorites')))
+
+    TabContent() {
+      DownloadsTab();
+    }
+    .tabBar(this.bottomBarItem(3, $r('app.media.ic_tab_downloads'), $r('app.media.ic_tab_downloads_filled'), $r('app.string.tab_downloads')))
+  }
+
   build() {
     NavDestination() {
       Row() {
         // ≥lg 用户偏好不为 'bottom' 时挂载 SideBar（贴屏幕左边缘，240vp 固定）
-        if (Layout.resolveNavStyle(this.bp, this.navStyle) === 'side') {
+        if (this.useSideNav()) {
           SideBar({
             currentIndex: this.currentIndex,
             onSelect: (i: number): void => {
@@ -168,45 +200,41 @@ export struct MainPage {
 
         // Tabs 铺满剩余宽度（或整屏宽）
         Column() {
-          HdsTabs({ controller: this.tabsController }) {
-            TabContent() {
-              HomeTab({
-                onSearchTap: (): void => this.switchToSearch(),
-                onSettingsTap: (): void => this.goSettings(),
-              });
+          if (this.useSideNav()) {
+            // 侧栏模式：隐藏底部栏（barHeight=0 + 不用悬浮样式），避免与 SideBar 重复出现
+            HdsTabs({ controller: this.tabsController }) {
+              this.tabPanels();
             }
-            .tabBar(this.bottomBarItem(0, $r('app.media.ic_tab_home'), $r('app.media.ic_tab_home_filled'), $r('app.string.tab_home')))
-
-            TabContent() {
-              SearchTab({ onOpenDomainSelector: (): void => this.openDomainSelector() });
+            .barPosition(BarPosition.End)
+            .barOverlap(false)
+            .barHeight(0)
+            .onSelected((index: number) => {
+              this.currentIndex = index;
+            })
+            .backgroundColor(AppColors.bgCanvas)
+            .width('100%')
+            .height('100%');
+          } else {
+            // 底栏模式：沉浸光感悬浮底栏
+            HdsTabs({ controller: this.tabsController }) {
+              this.tabPanels();
             }
-            .tabBar(this.bottomBarItem(1, $r('app.media.ic_tab_search'), $r('app.media.ic_tab_search_filled'), $r('app.string.tab_search')))
-
-            TabContent() {
-              FavoritesTab();
-            }
-            .tabBar(this.bottomBarItem(2, $r('app.media.ic_tab_favorites'), $r('app.media.ic_tab_favorites_filled'), $r('app.string.tab_favorites')))
-
-            TabContent() {
-              DownloadsTab();
-            }
-            .tabBar(this.bottomBarItem(3, $r('app.media.ic_tab_downloads'), $r('app.media.ic_tab_downloads_filled'), $r('app.string.tab_downloads')))
+            .barPosition(BarPosition.End)
+            .barOverlap(true)
+            .barFloatingStyle({
+              systemMaterialEffect: {
+                materialType: hdsMaterial.MaterialType.IMMERSIVE,
+                materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE,
+              },
+              barBottomMargin: this.navBarHeight + 12,
+            })
+            .onSelected((index: number) => {
+              this.currentIndex = index;
+            })
+            .backgroundColor(AppColors.bgCanvas)
+            .width('100%')
+            .height('100%');
           }
-          .barPosition(BarPosition.End)
-          .barOverlap(true)
-          .barFloatingStyle({
-            systemMaterialEffect: {
-              materialType: hdsMaterial.MaterialType.IMMERSIVE,
-              materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE,
-            },
-            barBottomMargin: this.navBarHeight + 12,
-          })
-          .onSelected((index: number) => {
-            this.currentIndex = index;
-          })
-          .backgroundColor(AppColors.bgCanvas)
-          .width('100%')
-          .height('100%');
         }
         .layoutWeight(1)
         .height('100%');

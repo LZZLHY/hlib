@@ -422,6 +422,11 @@
 
     { "name": "reason_download_dir",          "value": "Used to save books into an app-named folder under the public Downloads directory, so you can find them in Files" },
     { "name": "settings_dir_public_denied",   "value": "Download-directory permission not granted; kept the sandbox directory" },
-    { "name": "settings_dir_public_unsupported", "value": "Saving to the public Downloads folder is not supported on this device" }
+    { "name": "settings_dir_public_unsupported", "value": "Saving to the public Downloads folder is not supported on this device" },
+
+    { "name": "downloads_export_files",       "value": "Export files" },
+    { "name": "downloads_export_empty",       "value": "No files to export" },
+    { "name": "downloads_export_done_fmt",    "value": "Exported %d file(s) to public Downloads" },
+    { "name": "downloads_export_none",        "value": "No files exported (they may have been deleted)" }
   ]
 }

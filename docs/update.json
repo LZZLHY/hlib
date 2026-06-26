@@ -1,7 +1,7 @@
 {
-  "versionCode": 1000006,
+  "versionCode": 1000007,
   "versionName": "1.0.1",
   "releaseUrl": "https://github.com/LZZLHY/hlib/releases/latest",
-  "notes": "下载目录改为「沙箱 / 公共下载目录」二选一（公共目录写入应用专属文件夹，需授权）；启动自动检查更新+红点；重构与安全加固。",
+  "notes": "平板端：侧边栏/自动模式下不再叠加底部悬浮栏；下载页按目录类型显示「打开下载文件夹」（公共目录）或「导出文件」（沙箱内，可一键导出到公共下载目录）。",
   "changelogUrl": "https://github.com/LZZLHY/hlib/blob/master/docs/CHANGELOG.md"
 }
