@@ -55,12 +55,13 @@ export class PublicDownloadDir {
   }
 
   /**
-   * 平板：解析 `<Download>/<bundleName>` 原始路径（静默）。手机返回空串。
+   * 平板：解析 `<Download>/<bundleName>` 原始路径（静默）。
+   * 手机：返回最近一次 picker 选定的公共目录路径（仅用于打开/展示）。
    * 纯同步、不弹 UI，可在后台下载管线安全调用。
    */
   static resolveDir(): string {
     if (!PublicDownloadDir.isTabletSilent()) {
-      return '';
+      return AppStorage.get<string>(AppStorageKeys.PUBLIC_DOWNLOAD_DIR) ?? '';
     }
     try {
       const base: string = Environment.getUserDownloadDir();
@@ -72,6 +73,47 @@ export class PublicDownloadDir {
       Logger.w(TAG, `getUserDownloadDir failed: ${(e as Error).message}`);
     }
     return '';
+  }
+
+  /**
+   * 手机：弹出 DocumentViewPicker（DOWNLOAD 模式）让用户确认一次，把 `filename` 落到 `下载/<应用名>/`。
+   * save() 返回的 URI 解析为该应用专属目录路径 `basePath`，授权在**本次会话**内对 basePath 有效——
+   * 调用方须**紧接着**用返回的目标路径写入（openSync + 写流）。
+   * 返回最终可写文件的绝对路径；用户取消 / 失败返回空串。同时把目录缓存供「打开下载文件夹」用。
+   */
+  static async saveTargetPath(ctx: common.UIAbilityContext, filename: string): Promise<string> {
+    const uris: string[] = await PublicDownloadDir.saveFilesViaPicker(ctx, [filename]);
+    if (uris.length === 0) {
+      return '';
+    }
+    try {
+      const basePath: string = new fileUri.FileUri(uris[0]).path;
+      if (basePath === undefined || basePath === null || basePath.length === 0) {
+        return '';
+      }
+      // basePath 在本设备上是“应用专属目录”，文件写到其下；个别设备可能直接返回文件路径。
+      let dir: string = basePath;
+      let target: string = basePath;
+      let isDir: boolean = false;
+      try {
+        isDir = fileIo.statSync(basePath).isDirectory();
+      } catch (e) {
+        isDir = false;
+      }
+      if (isDir) {
+        dir = basePath;
+        target = `${basePath}/${filename}`;
+      } else {
+        const slash: number = basePath.lastIndexOf('/');
+        dir = slash >= 0 ? basePath.substring(0, slash) : basePath;
+        target = basePath;
+      }
+      AppStorage.setOrCreate<string>(AppStorageKeys.PUBLIC_DOWNLOAD_DIR, dir);
+      return target;
+    } catch (e) {
+      Logger.w(TAG, `saveTargetPath failed: ${(e as Error).message}`);
+      return '';
+    }
   }
 
   /**

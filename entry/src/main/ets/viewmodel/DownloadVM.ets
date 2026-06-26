@@ -40,6 +40,7 @@ import { UrlUtils } from '../utils/UrlUtils';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { Redact } from '../utils/Redact';
+import { PublicDownloadDir } from '../utils/PublicDownloadDir';
 import { FileTypes } from './download/FileTypes';
 import { FileValidator } from './download/FileValidator';
 import { DownloadPaths } from './download/DownloadPaths';
@@ -56,6 +57,8 @@ interface DownloadRetryCtx {
   attemptedDomains: Set<string>;
   /** 已重试次数（不含首次），上限 MAX_DOMAIN_RETRIES。 */
   retried: number;
+  /** 手机公共目录场景：picker 在 start() 选定的目标文件绝对路径，重试复用（避免每次重试重弹 picker）。 */
+  filePathOverride?: string;
 }
 
 /** 一个 download task 失败后最多自动换域重试的次数。 */
@@ -117,11 +120,27 @@ export class DownloadVM {
     const bookId: string = String(book.id);
     const initial: Set<string> = new Set<string>();
     initial.add(HttpClient.instance.getDomain());
+
+    // 手机端公共下载目录：必须经 DocumentViewPicker 交互拿到目标路径（本次会话内可写），
+    // 在此选定一次并随重试复用；用户取消则回退沙箱。
+    let filePathOverride: string | undefined = undefined;
+    const dirPref: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
+    if (dirPref === 'public' && PublicDownloadDir.needsPicker()) {
+      const filename: string = DownloadPaths.buildFilename(book);
+      const target: string = await PublicDownloadDir.saveTargetPath(ctx, filename);
+      if (target.length > 0) {
+        filePathOverride = target;
+      } else {
+        Logger.i(TAG, `picker canceled for ${bookId}, fallback sandbox`);
+      }
+    }
+
     DownloadVM.retryCtxs.set(bookId, {
       book: book,
       ctx: ctx,
       attemptedDomains: initial,
       retried: 0,
+      filePathOverride: filePathOverride,
     });
     return await DownloadVM.startInternal(book, ctx, undefined);
   }
@@ -149,7 +168,11 @@ export class DownloadVM {
     }
 
     const filename: string = DownloadPaths.buildFilename(book);
-    const filePath: string = DownloadPaths.buildFilePath(ctx, filename);
+    const retryCtx0: DownloadRetryCtx | undefined = DownloadVM.retryCtxs.get(bookId);
+    const override: string | undefined = retryCtx0 !== undefined ? retryCtx0.filePathOverride : undefined;
+    const filePath: string = (override !== undefined && override.length > 0)
+      ? override
+      : DownloadPaths.buildFilePath(ctx, filename);
 
     // 父目录必须存在
     const lastSlash: number = filePath.lastIndexOf('/');

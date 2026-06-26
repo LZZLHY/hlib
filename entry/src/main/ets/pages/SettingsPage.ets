@@ -203,6 +203,13 @@ export struct SettingsPage {
       return;
     }
     const ctx: common.UIAbilityContext = ctxOpt as common.UIAbilityContext;
+    // 手机端：公共目录写入须在每次下载时经 DocumentViewPicker 确认，这里只切换偏好。
+    if (PublicDownloadDir.needsPicker()) {
+      this.downloadPath = 'public';
+      SettingsPage.toastResource($r('app.string.settings_dir_public_done'));
+      return;
+    }
+    // 平板：静默路线，申请下载目录读写权限后切换。
     const dir: string = await PublicDownloadDir.ensureDir(ctx);
     if (dir.length === 0) {
       SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
@@ -213,7 +220,7 @@ export struct SettingsPage {
   }
 
   private currentDownloadDir(): DownloadDir {
-    return (this.downloadPath === 'public' && PublicDownloadDir.isTabletSilent()) ? 'public' : 'default';
+    return this.downloadPath === 'public' ? 'public' : 'default';
   }
 
   private confirmClearCache(): void {
@@ -867,19 +874,13 @@ export struct SettingsPage {
           .alignSelf(ItemAlign.Start);
         Row({ space: 8 }) {
           this.dirPill('default', $r('app.string.settings_download_dir_default'));
-          if (PublicDownloadDir.isTabletSilent()) {
-            this.dirPill('public', $r('app.string.settings_download_dir_public'));
-          }
+          this.dirPill('public', $r('app.string.settings_download_dir_public'));
         }
         .width('100%');
         if (this.currentDownloadDir() === 'public') {
-          Text(PublicDownloadDir.resolveDir())
-            .fontSize(AppFontSize.caption)
-            .fontColor(AppColors.textTertiary)
-            .maxLines(2)
-            .textOverflow({ overflow: TextOverflow.Ellipsis });
-        } else if (PublicDownloadDir.needsPicker()) {
-          Text($r('app.string.settings_download_dir_phone_hint'))
+          Text(PublicDownloadDir.isTabletSilent()
+            ? PublicDownloadDir.resolveDir()
+            : I18n.ts('settings_download_dir_phone_hint'))
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.textTertiary)
             .maxLines(2)

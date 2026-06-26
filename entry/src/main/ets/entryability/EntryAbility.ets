@@ -60,6 +60,7 @@ export default class EntryAbility extends UIAbility {
       PersistentStorage.persistProp<ThemeMode>(AppStorageKeys.THEME_MODE, 'system');
       PersistentStorage.persistProp<string>(AppStorageKeys.LOCALE, '');
       PersistentStorage.persistProp<string>(AppStorageKeys.DOWNLOAD_PATH, '');
+      PersistentStorage.persistProp<string>(AppStorageKeys.PUBLIC_DOWNLOAD_DIR, '');
       PersistentStorage.persistProp<NavStyle>(AppStorageKeys.NAV_STYLE, 'auto');
       PersistentStorage.persistProp<string>(AppStorageKeys.PRIVACY_AGREED_VERSION, '');
 

@@ -40,9 +40,9 @@ export struct DownloadsTab {
   @State private currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();
 
-  /** 是否为「平板静默公共目录」场景（仅此时下载文件真的在公共目录，头部显示“打开下载文件夹”）。 */
+  /** 是否下载到公共目录（沙箱外）：平板静默 / 手机经 picker 均落公共目录，头部显示“打开下载文件夹”。 */
   private isPublicDir(): boolean {
-    return this.downloadPath === 'public' && PublicDownloadDir.isTabletSilent();
+    return this.downloadPath === 'public';
   }
 
   aboutToAppear(): void {
