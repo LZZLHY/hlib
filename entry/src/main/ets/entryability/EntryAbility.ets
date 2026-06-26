@@ -10,6 +10,7 @@ import { AuthStore } from '../storage/AuthStore';
 import { ErrorReportStore } from '../storage/ErrorReportStore';
 import { AppStorageKeys, DEFAULT_DOMAIN, ThemeMode, NavStyle, Breakpoint } from '../storage/AppStorageKeys';
 import { HttpClient } from '../api/HttpClient';
+import { AppStorageDomainFailover } from '../api/AppStorageDomainFailover';
 import { DomainManifest } from '../api/DomainManifest';
 import { Layout } from '../utils/Layout';
 
@@ -65,6 +66,8 @@ export default class EntryAbility extends UIAbility {
       // 3) 应用偏好到 HttpClient
       const savedDomain = AppStorage.get<string>(AppStorageKeys.DOMAIN) ?? DEFAULT_DOMAIN;
       HttpClient.instance.setDomain(savedDomain);
+      // 注入域名漂移策略（解耦 HttpClient 与 AppStorage：失败重试时由它挑备用线路并回写生效域名）
+      HttpClient.instance.setFailover(new AppStorageDomainFailover());
 
       // 3.1) 读取并应用 HTTP 代理偏好
       const proxyEnabled: boolean = await PreferencesStore.getBoolean('settings', AppStorageKeys.PROXY_ENABLED, false);

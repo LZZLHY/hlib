@@ -19,7 +19,7 @@ import { Book } from '../model/Book';
 import { FavoritesVM } from '../viewmodel/FavoritesVM';
 import { HorizontalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
-import { AppRouter, Routes, BookDetailParams } from '../utils/AppRouter';
+import { AppRouter } from '../utils/AppRouter';
 import { ErrorHelper } from '../utils/ErrorHelper';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
@@ -57,13 +57,7 @@ export struct FavoritesTab {
   }
 
   private goDetail(b: Book): void {
-    const params: BookDetailParams = {
-      bookId: String(b.id),
-      hashId: b.hash !== undefined ? b.hash : '',
-      title: b.title,
-      cover: b.cover !== undefined ? b.cover : '',
-    };
-    AppRouter.push(Routes.BOOK_DETAIL, params);
+    AppRouter.pushBookDetail(b);
   }
 
   private confirmRemove(b: Book): void {

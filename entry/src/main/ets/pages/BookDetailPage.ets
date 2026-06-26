@@ -15,6 +15,7 @@ import { promptAction } from '@kit.ArkUI';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
 import { Book } from '../model/Book';
+import { User } from '../model/User';
 import { BookDetailVM } from '../viewmodel/BookDetailVM';
 import { FavoritesVM } from '../viewmodel/FavoritesVM';
 import { DownloadVM } from '../viewmodel/DownloadVM';
@@ -36,6 +37,7 @@ const TAG: string = 'BookDetailPage';
 export struct BookDetailPage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
   @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
+  @StorageProp(AppStorageKeys.USER) private user: User | null = null;
   @State private bookId: string = '';
   @State private hashId: string = '';
   @State private fallbackTitle: string = '';
@@ -91,6 +93,11 @@ export struct BookDetailPage {
       BookDetailPage.toast($r('app.string.detail_no_download'));
       return;
     }
+    // 游客模式：下载需要 Z-Library 账号，未登录时弹窗引导。
+    if (this.user === null) {
+      this.promptLogin();
+      return;
+    }
     try {
       const host: Context | undefined = this.getUIContext().getHostContext();
       if (host === undefined) {
@@ -136,13 +143,7 @@ export struct BookDetailPage {
   }
 
   private onTapSimilarBook(b: Book): void {
-    const params: BookDetailParams = {
-      bookId: String(b.id),
-      hashId: b.hash !== undefined ? b.hash : '',
-      title: b.title,
-      cover: b.cover !== undefined ? b.cover : '',
-    };
-    AppRouter.push(Routes.BOOK_DETAIL, params);
+    AppRouter.pushBookDetail(b);
   }
 
   private onMoreSimilar(): void {
@@ -155,6 +156,27 @@ export struct BookDetailPage {
       title: this.detail.title,
     };
     AppRouter.push(Routes.SIMILAR, params);
+  }
+
+  /** 游客模式引导弹窗：下载/阅读需登录时调用。 */
+  private promptLogin(): void {
+    this.getUIContext().showAlertDialog({
+      title: $r('app.string.login_required_title'),
+      message: $r('app.string.login_required_download_msg'),
+      alignment: DialogAlignment.Center,
+      primaryButton: {
+        value: $r('app.string.login_required_go'),
+        fontColor: AppColors.brandPrimary,
+        action: (): void => {
+          AppRouter.push(Routes.LOGIN);
+        },
+      },
+      secondaryButton: {
+        value: $r('app.string.common_cancel'),
+        fontColor: AppColors.textSecondary,
+        action: (): void => {},
+      },
+    });
   }
 
   private static toast(msg: ResourceStr): void {
@@ -211,7 +233,7 @@ export struct BookDetailPage {
       .padding({ left: 12, right: 12, top: 12, bottom: 8 })
     }
     .width('100%')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     });

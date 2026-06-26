@@ -9,6 +9,7 @@
  */
 
 import { Logger } from './Logger';
+import { Book } from '../model/Book';
 
 const TAG: string = 'AppRouter';
 
@@ -75,6 +76,20 @@ export class AppRouter {
     } catch (e) {
       Logger.w(TAG, `push(${name}) failed: ${(e as Error).message}`);
     }
+  }
+
+  /**
+   * 跳转书籍详情。集中构造 BookDetailParams，避免各页/各 Tab 重复同一段映射逻辑
+   * （此前在 HomeTab / SearchTab / FavoritesTab / BookDetailPage / SimilarBooksPage 各写一遍）。
+   */
+  static pushBookDetail(book: Book): void {
+    const param: BookDetailParams = {
+      bookId: String(book.id),
+      hashId: book.hash !== undefined ? book.hash : '',
+      title: book.title,
+      cover: book.cover !== undefined ? book.cover : '',
+    };
+    AppRouter.push(Routes.BOOK_DETAIL, param);
   }
 
   /** 替换栈顶。 */

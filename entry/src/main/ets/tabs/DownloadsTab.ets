@@ -23,6 +23,7 @@ import { DownloadVM } from '../viewmodel/DownloadVM';
 import { BookCoverImage } from '../components/BookCoverImage';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorHelper } from '../utils/ErrorHelper';
+import { Format } from '../utils/Format';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
@@ -42,14 +43,6 @@ export struct DownloadsTab {
     DownloadVM.refreshHistory().catch((e: Error) => {
       Logger.w(TAG, `refreshHistory failed: ${e.message}`);
     });
-  }
-
-  private async onPause(t: DownloadTask): Promise<void> {
-    await DownloadVM.pause(t.bookId);
-  }
-
-  private async onResume(t: DownloadTask): Promise<void> {
-    await DownloadVM.resume(t.bookId);
   }
 
   private onCancel(t: DownloadTask): void {
@@ -227,14 +220,14 @@ export struct DownloadsTab {
             Text(`${t.progress}%`)
               .fontSize(AppFontSize.caption)
               .fontColor(AppColors.textTertiary);
-            Text(`${DownloadsTab.formatSize(t.receivedBytes)} / ${DownloadsTab.formatSize(t.totalBytes)}`)
+            Text(`${Format.size(t.receivedBytes)} / ${Format.size(t.totalBytes)}`)
               .fontSize(AppFontSize.caption)
               .fontColor(AppColors.textTertiary)
               .layoutWeight(1)
               .maxLines(1)
               .textOverflow({ overflow: TextOverflow.Ellipsis });
           } else if (t.receivedBytes > 0) {
-            Text(DownloadsTab.formatSize(t.receivedBytes))
+            Text(Format.size(t.receivedBytes))
               .fontSize(AppFontSize.caption)
               .fontColor(AppColors.textTertiary);
           }
@@ -266,24 +259,6 @@ export struct DownloadsTab {
       .layoutWeight(1);
 
       Column({ space: 6 }) {
-        if (t.status === 'downloading') {
-          Button({ type: ButtonType.Circle, stateEffect: true }) {
-            Image($r('app.media.ic_pause')).width(16).height(16);
-          }
-          .width(32)
-          .height(32)
-          .backgroundColor(AppColors.surfaceAlt)
-          .onClick(() => this.onPause(t));
-        } else if (t.status === 'paused') {
-          Button({ type: ButtonType.Circle, stateEffect: true }) {
-            Image($r('app.media.ic_resume')).width(14).height(14);
-          }
-          .width(32)
-          .height(32)
-          .backgroundColor(AppColors.surfaceAlt)
-          .onClick(() => this.onResume(t));
-        }
-
         Button({ type: ButtonType.Circle, stateEffect: true }) {
           Image($r('app.media.ic_cancel')).width(14).height(14);
         }
@@ -338,11 +313,11 @@ export struct DownloadsTab {
               .borderRadius(4);
           }
           if (item.filesize !== undefined && item.filesize > 0) {
-            Text(DownloadsTab.formatSize(item.filesize))
+            Text(Format.size(item.filesize))
               .fontSize(AppFontSize.caption)
               .fontColor(AppColors.textTertiary);
           }
-          Text(DownloadsTab.formatDate(item.downloadedAt))
+          Text(Format.date(item.downloadedAt))
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.textTertiary);
         }
@@ -481,22 +456,5 @@ export struct DownloadsTab {
     if (s === 'paused') return AppColors.warning;
     if (s === 'completed') return AppColors.successTeal;
     return AppColors.brandPrimary;
-  }
-
-  private static formatSize(bytes: number): string {
-    if (bytes <= 0) return '—';
-    const KB: number = 1024;
-    const MB: number = 1024 * 1024;
-    const GB: number = 1024 * 1024 * 1024;
-    if (bytes >= GB) return `${(bytes / GB).toFixed(2)} GB`;
-    if (bytes >= MB) return `${(bytes / MB).toFixed(1)} MB`;
-    if (bytes >= KB) return `${(bytes / KB).toFixed(0)} KB`;
-    return `${bytes} B`;
-  }
-
-  private static formatDate(iso: string): string {
-    if (iso.length === 0) return '';
-    // 取 YYYY-MM-DD
-    return iso.slice(0, 10);
   }
 }

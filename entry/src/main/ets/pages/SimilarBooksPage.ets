@@ -11,7 +11,7 @@ import { Book } from '../model/Book';
 import { ZLibraryClient } from '../api/ZLibraryClient';
 import { HorizontalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
-import { AppRouter, Routes, BookDetailParams, SimilarParams } from '../utils/AppRouter';
+import { AppRouter, SimilarParams } from '../utils/AppRouter';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'SimilarBooksPage';
@@ -42,13 +42,7 @@ export struct SimilarBooksPage {
   }
 
   private onTapBook(b: Book): void {
-    const params: BookDetailParams = {
-      bookId: String(b.id),
-      hashId: b.hash !== undefined ? b.hash : '',
-      title: b.title,
-      cover: b.cover !== undefined ? b.cover : '',
-    };
-    AppRouter.push(Routes.BOOK_DETAIL, params);
+    AppRouter.pushBookDetail(b);
   }
 
   @Builder
@@ -85,7 +79,7 @@ export struct SimilarBooksPage {
       .padding({ left: 12, right: 12, top: 12, bottom: 12 })
     }
     .width('100%')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     });

@@ -152,15 +152,13 @@ export struct SplashPage {
 
     await SplashPage.delay(700);
 
-    let target: string = Routes.LOGIN;
+    // 游客模式：默认进入主页。如本地有保存凭证则后台静默恢复登录态，
+    // 但无论恢复成功/失败都进 MAIN——失败时 user 为 null，UI 自动呈现游客状态。
     if (HttpClient.instance.hasAuth()) {
       this.statusText = $r('app.string.splash_checking_network');
-      const user = await AuthVM.restoreFromStorage();
-      if (user !== null) {
-        target = Routes.MAIN;
-      }
+      await AuthVM.restoreFromStorage();
     }
-
+    const target: string = Routes.MAIN;
     Logger.i(TAG, `redirect to ${target}`);
     AppRouter.replace(target);
   }

@@ -58,7 +58,7 @@ export struct CustomDomainDialog {
           .onSubmit(() => this.commit());
 
         if (this.hasError) {
-          Text('域名格式不正确')
+          Text($r('app.string.domain_custom_invalid'))
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.error)
             .alignSelf(ItemAlign.Start);

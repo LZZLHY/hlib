@@ -18,7 +18,7 @@ import { HorizontalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
 import { FilterDialog, FilterValues } from '../components/FilterDialog';
 import { CfBlockedDialog } from '../components/CfBlockedDialog';
-import { AppRouter, Routes, BookDetailParams } from '../utils/AppRouter';
+import { AppRouter } from '../utils/AppRouter';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { Layout } from '../utils/Layout';
@@ -163,13 +163,7 @@ export struct SearchTab {
   }
 
   private goDetail(book: Book): void {
-    const params: BookDetailParams = {
-      bookId: String(book.id),
-      hashId: book.hash !== undefined ? book.hash : '',
-      title: book.title,
-      cover: book.cover !== undefined ? book.cover : '',
-    };
-    AppRouter.push(Routes.BOOK_DETAIL, params);
+    AppRouter.pushBookDetail(book);
   }
 
   /** 当前是否有筛选生效 */
@@ -239,7 +233,7 @@ export struct SearchTab {
       .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), top: AppSpace.s12, bottom: AppSpace.s8 })
     }
     .width('100%')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     });

@@ -21,6 +21,7 @@ import { ReadingPositionStore } from '../storage/ReadingPositionStore';
 import { AppRouter, ReaderParams } from '../utils/AppRouter';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
+import { Redact } from '../utils/Redact';
 
 /** Web 内点击空白处时注入的特殊导航 URL；在 onLoadIntercept 中捕获后切换全屏。 */
 const FS_TOGGLE_URL: string = 'hlib://toggle-fullscreen';
@@ -323,8 +324,10 @@ export struct ReaderPage {
       .padding(12)
     }
     .width('100%')
-    .backgroundColor('#CC0E7C7B')
-    .backgroundBlurStyle(BlurStyle.Thin);
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
+      colorMode: ThemeColorMode.SYSTEM,
+      adaptiveColor: AdaptiveColor.DEFAULT,
+    });
   }
 
   @Builder
@@ -415,7 +418,7 @@ export struct ReaderPage {
           } catch (e) {
             Logger.w(TAG, `setCustomUserAgent failed: ${(e as Error).message}`);
           }
-          Logger.i(TAG, `loading reader: ${this.url}`);
+          Logger.i(TAG, `loading reader: ${Redact.url(this.url)}`);
           this.startLoadTimeout();
         })
         .onProgressChange((event: OnProgressChangeEvent) => {

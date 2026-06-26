@@ -1,0 +1,79 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<title>海阅 图标导出 · 1024×1024</title>
+<style>
+  body { font-family: -apple-system, "Segoe UI", sans-serif; text-align: center; padding: 40px; background: #f5f5f5; }
+  .preview { display: inline-block; margin: 20px; }
+  canvas { border: 2px solid #e0e0e0; border-radius: 12px; background: white; }
+  button { font-size: 18px; padding: 14px 32px; background: #0E7C7B; color: white; border: none; border-radius: 8px; cursor: pointer; margin: 10px; }
+  button:hover { background: #085858; }
+  .info { color: #666; font-size: 14px; line-height: 1.8; margin-top: 20px; }
+</style>
+</head>
+<body>
+
+<h1>海阅 HLib · 应用图标导出</h1>
+<p>根据项目内 <code>AppScope/resources/base/media/foreground.svg</code> + <code>background.svg</code> 合成</p>
+
+<div class="preview">
+  <div>预览（实际输出 1024×1024）</div>
+  <canvas id="c" width="1024" height="1024" style="width:256px; height:256px;"></canvas>
+</div>
+
+<br>
+<button onclick="downloadPNG()">📥 下载 1024×1024 PNG</button>
+<button onclick="downloadPNG(216)">📥 下载 216×216 PNG</button>
+
+<p class="info">
+  下载完成后，直接在 AGC「应用图标」处上传即可。<br>
+  图标与应用内启动图一致，符合华为审核要求。
+</p>
+
+<script>
+const canvas = document.getElementById('c');
+const ctx = canvas.getContext('2d');
+
+function draw(size) {
+  const cnv = size === 1024 ? canvas : (() => { const t = document.createElement('canvas'); t.width = t.height = size; return t; })();
+  const g = cnv.getContext('2d');
+  g.clearRect(0, 0, size, size);
+
+  // 背景：从 #085858 → #0E7C7B 的对角渐变（与 background.svg 一致）
+  const grad = g.createLinearGradient(0, 0, size, size);
+  grad.addColorStop(0, '#085858');
+  grad.addColorStop(1, '#0E7C7B');
+  g.fillStyle = grad;
+
+  // 圆角矩形（对应 SVG 的 rx=5.5/24 ≈ 22.9% 圆角率，但 AGC 会自己 Mask，我们画整方块）
+  g.fillRect(0, 0, size, size);
+
+  // 前景：书本图标（foreground.svg 中的 path，viewBox 24x24 缩放到 size）
+  const scale = size / 24;
+  g.save();
+  g.scale(scale, scale);
+  g.fillStyle = '#FFFFFF';
+  const path = new Path2D('M5 5h2.4v6.2c1.45-.95 2.9-1.35 4.6-1.35s3.15.4 4.6 1.35V5H19v14h-2.4v-4.8c-1.25-1.15-2.75-1.75-4.6-1.75s-3.35.6-4.6 1.75V19H5V5Zm2.4 10.55v1.1c1.45-1 2.9-1.45 4.6-1.45s3.15.45 4.6 1.45v-1.1c-1.32-1.08-2.82-1.6-4.6-1.6s-3.28.52-4.6 1.6Z');
+  g.fill(path);
+  g.restore();
+
+  return cnv;
+}
+
+function downloadPNG(size = 1024) {
+  const out = size === 1024 ? canvas : draw(size);
+  out.toBlob((blob) => {
+    const link = document.createElement('a');
+    link.download = `hlib_icon_${size}.png`;
+    link.href = URL.createObjectURL(blob);
+    link.click();
+    URL.revokeObjectURL(link.href);
+  }, 'image/png');
+}
+
+// 初始渲染 1024 主画布
+draw(1024);
+</script>
+</body>
+</html>

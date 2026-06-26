@@ -1,31 +1,15 @@
 {
   "app": {
     /*
-     * signingConfigs 已挪出仓库——避免明文密码进入 git。
-     * 本地构建时 DevEco Studio 会在 File > Project Structure > Signing Configs 中
-     * 配置并写入 ./build-profile.signing.local.json5（已被 .gitignore），
-     * IDE 启动构建时会自动 merge。
-     * CI / 命令行构建：参考 README "签名配置" 一节，使用环境变量注入。
+     * signingConfigs 不入库——避免证书路径与密码进入 git。
+     * 本地构建时在 DevEco Studio 的 File > Project Structure > Signing Configs 配置，
+     * IDE 会把签名信息写回本文件；提交时请勿带上 material 段。
+     * CI / 命令行构建：通过环境变量注入并在构建前生成本地 build-profile。
      */
-    "signingConfigs": [
-      {
-        "name": "default",
-        "type": "HarmonyOS",
-        "material": {
-          "certpath": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.cer",
-          "keyAlias": "debugKey",
-          "keyPassword": "REDACTED",
-          "profile": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.p7b",
-          "signAlg": "SHA256withECDSA",
-          "storeFile": "C:\\Users\\dhao\\.ohos\\config\\default_hlib_j0b7qeir1LTzD3GY9MaHp89EKcaumLAcu7eWhl7307w=.p12",
-          "storePassword": "REDACTED"
-        }
-      }
-    ],
+    "signingConfigs": [],
     "products": [
       {
         "name": "default",
-        "signingConfig": "default",
         "targetSdkVersion": "6.1.0(23)",
         "compatibleSdkVersion": "6.1.0(23)",
         "runtimeOS": "HarmonyOS",

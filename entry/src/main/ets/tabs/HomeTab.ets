@@ -19,10 +19,10 @@ import { AppStorageKeys, Breakpoint } from '../storage/AppStorageKeys';
 import { Layout } from '../utils/Layout';
 import { Book } from '../model/Book';
 import { User } from '../model/User';
-import { HomeVM, LoadMoreResult } from '../viewmodel/HomeVM';
+import { HomeVM, LoadMoreResult, HomeSections } from '../viewmodel/HomeVM';
 import { VerticalBookCard } from '../components/BookCard';
 import { EmptyState } from '../components/EmptyState';
-import { AppRouter, Routes, BookDetailParams } from '../utils/AppRouter';
+import { AppRouter } from '../utils/AppRouter';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
@@ -38,6 +38,8 @@ export struct HomeTab {
   @StorageProp('statusBarHeight') statusBarHeight: number = 0;
   @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.USER) private user: User | null = null;
+  /** 生效线路：手动切换或测速后自动择优都会改它 → 触发首页重载，保证内容来自可用节点。 */
+  @StorageProp(AppStorageKeys.DOMAIN) @Watch('onDomainChanged') private activeDomain: string = '';
   @StorageLink(AppStorageKeys.HOME_RECOMMENDED) private recommended: Book[] = [];
   @StorageLink(AppStorageKeys.HOME_POPULAR) private popular: Book[] = [];
   @StorageLink(AppStorageKeys.HOME_RECENT) private recent: Book[] = [];
@@ -58,13 +60,21 @@ export struct HomeTab {
     }
   }
 
+  /** 线路变化（手动切线路 / 测速后自动择优）→ 重新加载首页内容。 */
+  private onDomainChanged(): void {
+    Logger.i(TAG, `active domain changed -> ${this.activeDomain}, reloading home`);
+    this.refresh();
+  }
+
   private async refresh(): Promise<void> {
     this.popularPage = 1;
     this.recentPage = 1;
     this.popularHasMore = true;
     this.recentHasMore = true;
     try {
-      await HomeVM.refresh();
+      const sections: HomeSections = await HomeVM.refresh();
+      this.popularHasMore = sections.popularHasMore;
+      this.recentHasMore = sections.recentHasMore;
     } catch (err) {
       const e: Error = err as Error;
       Logger.w(TAG, `refresh failed: ${e.message}`);
@@ -124,13 +134,7 @@ export struct HomeTab {
   }
 
   private goDetail(book: Book): void {
-    const params: BookDetailParams = {
-      bookId: String(book.id),
-      hashId: book.hash !== undefined ? book.hash : '',
-      title: book.title,
-      cover: book.cover !== undefined ? book.cover : '',
-    };
-    AppRouter.push(Routes.BOOK_DETAIL, params);
+    AppRouter.pushBookDetail(book);
   }
 
   // ── Builders ──
@@ -181,11 +185,9 @@ export struct HomeTab {
     .width('100%')
     .height(48)
     .padding({ left: AppSpace.s16, right: AppSpace.s16 })
-    .backgroundColor('#E6F5F5F5')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.COMPONENT_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
-      scale: 0.9,
     })
     .borderRadius(AppRadius.pill)
     .shadow({ radius: 8, color: AppColors.shadowCard, offsetX: 0, offsetY: 2 })
@@ -328,7 +330,7 @@ export struct HomeTab {
       }
       .width('100%')
       .padding({ left: Layout.pagePadding(this.bp), right: Layout.pagePadding(this.bp), bottom: 12 })
-      .backgroundBlurStyle(BlurStyle.Thin, {
+      .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, {
         colorMode: ThemeColorMode.SYSTEM,
         adaptiveColor: AdaptiveColor.DEFAULT,
       })

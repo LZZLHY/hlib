@@ -8,9 +8,9 @@
  * 内容地区策略（基于 olib 二进制逆向 + 实测）：
  *   - `/eapi/user/book/recommended` 是按账号 profile.language 过滤的（账号绑了中文就出中文）
  *   - `/eapi/book/most-popular` 与 `/eapi/book/recently` 是**全站统计**，
- *     **不按 cookie / Accept-Language / query 过滤**——永远返回全站最热（英文为主）
- *   - 因此当用户指定了内容地区偏好时，"热门"和"近期"必须走 `/eapi/book/search`
- *     （`order=popular` / `order=date` + `languages[]`）模拟 zlib 官方 app 行为
+ *     **不按 cookie / Accept-Language / query 过滤**——永远返回全站最热（英文为主），且不分页
+ *   - 因此"热门 / 近期"统一走 `/eapi/book/search`（`order=popular` / `order=date`，可选 `languages[]`）：
+ *     既能按地区过滤，又与"加载更多"同接口同排序，分页连续、不重复，hasMore 可由 totalPages 推导
  *
  *   - 设置页 CONTENT_LANG 偏好同步通过 HttpClient.setSiteLanguage 注入
  *     `siteLanguageV2` cookie 与动态 Accept-Language（兜底信号，对 recommended 有效）
@@ -27,8 +27,8 @@ import { Logger } from '../utils/Logger';
 const TAG: string = 'HomeVM';
 
 export class HomeVM {
-  /** 全量并发刷新。 */
-  static async refresh(): Promise<void> {
+  /** 全量并发刷新。返回热门/近期两个 section 的"是否还有更多"，供 UI 初始化分页状态。 */
+  static async refresh(): Promise<HomeSections> {
     AppStorage.setOrCreate<boolean>(AppStorageKeys.HOME_LOADING, true);
     // 切换内容地区 / 主动刷新时先清空三个数据 key，
     // 强制 @StorageLink 触发一次 UI 重渲（避免数组整体替换时偶发不刷新）。
@@ -40,28 +40,48 @@ export class HomeVM {
       const langLog: string = langs !== undefined ? langs.join(',') : 'all';
       Logger.i(TAG, `home fetch: lang=${langLog}`);
 
-      // 推荐：始终调 user/book/recommended——zlib 服务端按账号 profile.language 给个性化推荐，
-      //       与内容地区偏好独立（地区只控制热门/近期）。
-      // 热门 / 近期：有地区偏好走 search 模拟（按 query 过滤）；无偏好回退原 endpoint。
+      // 推荐：始终调 user/book/recommended——zlib 服务端按账号 profile.language 给个性化推荐。
+      // 热门 / 近期：统一走 search（order=popular / date）。
+      //   这样首页第一页与"加载更多"后续页来自同一接口、同一排序，分页连续、不重复；
+      //   hasMore 也能由 totalPages 精确推导，而非写死 true。
       const recommendedTask: Promise<Book[]> =
         ZLibraryClient.instance.getUserRecommended().catch((e: Object) => HomeVM.empty('recommended', e));
+      const popularTask: Promise<SectionPage> = HomeVM.fetchSection('popular', langs);
+      const recentTask: Promise<SectionPage> = HomeVM.fetchSection('date', langs);
 
-      const popularTask: Promise<Book[]> = langs !== undefined
-        ? ZLibraryClient.instance.getPopularByLanguage(langs).catch((e: Object) => HomeVM.empty('popular', e))
-        : ZLibraryClient.instance.getMostPopular().catch((e: Object) => HomeVM.empty('popular', e));
+      // 三者并发发起，顺序收集结果
+      const recommended: Book[] = await recommendedTask;
+      const popular: SectionPage = await popularTask;
+      const recent: SectionPage = await recentTask;
 
-      const recentTask: Promise<Book[]> = langs !== undefined
-        ? ZLibraryClient.instance.getRecentByLanguage(langs).catch((e: Object) => HomeVM.empty('recent', e))
-        : ZLibraryClient.instance.getRecently().catch((e: Object) => HomeVM.empty('recent', e));
-
-      const tasks: Promise<Book[]>[] = [recommendedTask, popularTask, recentTask];
-      const results: Book[][] = await Promise.all(tasks);
-      AppStorage.setOrCreate<Book[]>(AppStorageKeys.HOME_RECOMMENDED, results[0]);
-      AppStorage.setOrCreate<Book[]>(AppStorageKeys.HOME_POPULAR, results[1]);
-      AppStorage.setOrCreate<Book[]>(AppStorageKeys.HOME_RECENT, results[2]);
-      Logger.i(TAG, `home refreshed: rec=${results[0].length} pop=${results[1].length} rec2=${results[2].length}`);
+      AppStorage.setOrCreate<Book[]>(AppStorageKeys.HOME_RECOMMENDED, recommended);
+      AppStorage.setOrCreate<Book[]>(AppStorageKeys.HOME_POPULAR, popular.books);
+      AppStorage.setOrCreate<Book[]>(AppStorageKeys.HOME_RECENT, recent.books);
+      Logger.i(TAG, `home refreshed: rec=${recommended.length} pop=${popular.books.length} rec2=${recent.books.length}`);
+      const sections: HomeSections = { popularHasMore: popular.hasMore, recentHasMore: recent.hasMore };
+      return sections;
     } finally {
       AppStorage.setOrCreate<boolean>(AppStorageKeys.HOME_LOADING, false);
+    }
+  }
+
+  /**
+   * 拉取一个可分页的 section（order=popular / date）的第 1 页。
+   * 失败回退空列表且 hasMore=false（不显示"加载更多"，不会拉到重复页）。
+   */
+  private static async fetchSection(order: string, langs: string[] | undefined): Promise<SectionPage> {
+    const opts: SearchOptions = { order: order, page: 1, limit: 30 };
+    if (langs !== undefined) {
+      opts.languages = langs;
+    }
+    try {
+      const page: SearchPage = await ZLibraryClient.instance.search(opts);
+      const result: SectionPage = { books: page.books, hasMore: page.currentPage < page.totalPages };
+      return result;
+    } catch (e) {
+      HomeVM.empty(order === 'popular' ? 'popular' : 'recent', e);
+      const fallback: SectionPage = { books: [], hasMore: false };
+      return fallback;
     }
   }
 
@@ -128,6 +148,18 @@ export class HomeVM {
 }
 
 export interface LoadMoreResult {
+  books: Book[];
+  hasMore: boolean;
+}
+
+/** 首页热门/近期 section 的初始分页状态。 */
+export interface HomeSections {
+  popularHasMore: boolean;
+  recentHasMore: boolean;
+}
+
+/** 单个分页 section 的拉取结果。 */
+interface SectionPage {
   books: Book[];
   hasMore: boolean;
 }

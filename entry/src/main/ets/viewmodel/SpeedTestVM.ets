@@ -136,6 +136,8 @@ export class SpeedTestVM {
       await PreferencesStore.putNumber('settings', KEY_RESULTS_TS, now);
       const fastestDomain: string = results.length > 0 ? results[0].domain : 'n/a';
       Logger.i(TAG, `speed test done: ${results.length} domains, fastest=${fastestDomain}`);
+      // 测速完成后的自动择优：当前生效域名若已死，自动切到最快可用线路
+      SpeedTestVM.autoSwitchIfCurrentDead(results);
       return results;
     } finally {
       SpeedTestVM.running = false;
@@ -152,5 +154,46 @@ export class SpeedTestVM {
       }
     }
     return null;
+  }
+
+  /**
+   * 测速完成后的自动择优。
+   * 策略（保守，避免打断用户/自定义线路）：
+   *   - 仅当「当前生效域名」确实被本轮测速覆盖且判定为不可达(latencyMs<=0)时，才自动切换；
+   *   - 当前域名可用，或当前域名未被本轮测速覆盖（多为用户自定义线路），都不动。
+   * 切换时同步写入 HttpClient 与 AppStorage[DOMAIN]，让 UI 线路指示与实际一致。
+   *
+   * @param sorted 已按延迟升序排好的测速结果（首个可用项即最快）。
+   */
+  private static autoSwitchIfCurrentDead(sorted: DomainTestResult[]): void {
+    const current: string = HttpClient.instance.getDomain();
+    let tested: boolean = false;
+    let currentAlive: boolean = false;
+    for (let i = 0; i < sorted.length; i++) {
+      if (sorted[i].domain === current) {
+        tested = true;
+        const ms: number | null = sorted[i].latencyMs;
+        currentAlive = ms !== null && ms > 0;
+        break;
+      }
+    }
+    // 当前线路未被测过（自定义线路）或仍可用 → 尊重现状，不自动切换
+    if (!tested || currentAlive) {
+      return;
+    }
+    // 当前线路已死 → 切到最快可用线路
+    let best: DomainTestResult | null = null;
+    for (let i = 0; i < sorted.length; i++) {
+      const ms: number | null = sorted[i].latencyMs;
+      if (ms !== null && ms > 0) {
+        best = sorted[i];
+        break;
+      }
+    }
+    if (best !== null && best.domain !== current) {
+      HttpClient.instance.setDomain(best.domain);
+      AppStorage.setOrCreate<string>(AppStorageKeys.DOMAIN, best.domain);
+      Logger.i(TAG, `auto-switch dead domain ${current} -> ${best.domain} (${best.latencyMs}ms)`);
+    }
   }
 }

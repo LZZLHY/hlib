@@ -19,9 +19,11 @@ import { http } from '@kit.NetworkKit';
 import { BusinessError } from '@kit.BasicServicesKit';
 import { Logger } from '../utils/Logger';
 import { UrlUtils } from '../utils/UrlUtils';
+import { Redact } from '../utils/Redact';
 import { DohResolver } from '../utils/DohResolver';
-import { AppStorageKeys } from '../storage/AppStorageKeys';
-import { DomainTestResult } from '../model/DomainTestResult';
+import { CookieJar } from './CookieJar';
+import { CloudflareDetector } from './CloudflareDetector';
+import { DomainFailover } from './DomainFailover';
 import {
   ApiError,
   CfBlockedError,
@@ -75,14 +77,6 @@ function sleep(ms: number): Promise<void> {
 function jitterMs(): number {
   return JITTER_MIN_MS + Math.floor(Math.random() * (JITTER_MAX_MS - JITTER_MIN_MS + 1));
 }
-
-const CF_MARKERS: string[] = [
-  'Just a moment...',
-  'cf-mitigated',
-  'Attention Required! | Cloudflare',
-  '__cf_chl_',
-  'cdn-cgi/challenge-platform',
-];
 
 /**
  * Z-Library 首页内容语言偏好。
@@ -139,8 +133,11 @@ export class HttpClient {
   /** 登录态（注入为 remix_userid/remix_userkey cookie） */
   private remixUserId: string = '';
   private remixUserKey: string = '';
-  /** 服务端 set-cookie 解析后的 cookie jar：name -> value */
-  private cookieJar: Map<string, string> = new Map<string, string>();
+  /** 服务端 set-cookie 解析后的 cookie jar */
+  private cookieJar: CookieJar = new CookieJar();
+
+  /** 域名漂移策略（由上层注入，未注入时不做自动切换）。 */
+  private failover: DomainFailover | null = null;
 
   /** 当前域名连续失败计数（仅 NetworkError / HttpStatusError 5xx 计入；4xx 业务错不计）。 */
   private consecutiveFails: number = 0;
@@ -183,6 +180,11 @@ export class HttpClient {
 
   getDomain(): string {
     return this.domain;
+  }
+
+  /** 注入域名漂移策略（EntryAbility 启动时调一次）。 */
+  setFailover(failover: DomainFailover): void {
+    this.failover = failover;
   }
 
   /**
@@ -410,9 +412,9 @@ export class HttpClient {
         this.consecutiveFails++;
         Logger.w(TAG, `attempt ${attempt + 1} failed (${lastError.name}): ${lastError.message}`);
 
-        // 到阈值 → 尝试漂移到备用域名
-        if (this.consecutiveFails >= FALLBACK_FAIL_THRESHOLD) {
-          const newDomain: string | null = this.pickFallbackDomain();
+        // 到阈值 → 尝试漂移到备用域名（仅当注入了 failover 策略）
+        if (this.consecutiveFails >= FALLBACK_FAIL_THRESHOLD && this.failover !== null) {
+          const newDomain: string | null = this.failover.pickFallback(this.domain, this.triedDomains);
           if (newDomain !== null) {
             const oldDomain: string = this.domain;
             this.triedDomains.add(oldDomain);
@@ -422,8 +424,10 @@ export class HttpClient {
             this.domain = newDomain;
             this.cookieJar.clear();
             this.consecutiveFails = 0;
-            // url 里的 oldDomain 替为 newDomain，后续重试使新域名
-            currentUrl = currentUrl.split(oldDomain).join(newDomain);
+            // 只替换 URL 的 host 段，避免 oldDomain 出现在 path/query 时被误改
+            currentUrl = HttpClient.swapUrlHost(currentUrl, oldDomain, newDomain);
+            // 通知上层生效域名变更（UI 线路指示更新，首页 @Watch 在可用节点上重载）
+            this.failover.onDomainSwitched(newDomain);
           }
         }
 
@@ -465,7 +469,7 @@ export class HttpClient {
         }
       }
 
-      Logger.d(TAG, `${method} ${url}`);
+      Logger.d(TAG, `${method} ${Redact.url(url)}`);
 
       const reqOpts: http.HttpRequestOptions = {
         method,
@@ -485,13 +489,13 @@ export class HttpClient {
       const resp: http.HttpResponse = await req.request(url, reqOpts);
 
       // 解析 set-cookie 入 jar（同域或上游 reader 域我们都收下）
-      this.captureSetCookie(resp.header as Record<string, string | string[]>);
+      this.cookieJar.captureFrom(resp.header as Record<string, string | string[]>);
 
       const status: number = resp.responseCode;
       const text: string = typeof resp.result === 'string' ? resp.result : '';
 
       // Cloudflare 检测优先于状态码
-      if (HttpClient.isCfBlocked(status, text, resp.header as Record<string, string | string[]>)) {
+      if (CloudflareDetector.isBlocked(status, text, resp.header as Record<string, string | string[]>)) {
         throw new CfBlockedError();
       }
 
@@ -525,27 +529,6 @@ export class HttpClient {
     } finally {
       req.destroy();
     }
-  }
-
-  /**
-   * 从 SpeedTestVM 的全局结果中挑下一个可用且未尝试过的域名。
-   * 只在 request 内部自动漂移使用；返回 null 表示没有可选。
-   */
-  private pickFallbackDomain(): string | null {
-    const results: DomainTestResult[] | undefined =
-      AppStorage.get<DomainTestResult[]>(AppStorageKeys.SPEED_RESULTS);
-    if (results === undefined || results.length === 0) {
-      return null;
-    }
-    // results 已按延迟升序；找第一个 alive 且不是当前且未尝试过的
-    for (let i = 0; i < results.length; i++) {
-      const r: DomainTestResult = results[i];
-      const ms: number | null = r.latencyMs;
-      if (ms !== null && ms > 0 && r.domain !== this.domain && !this.triedDomains.has(r.domain)) {
-        return r.domain;
-      }
-    }
-    return null;
   }
 
   private buildCookieHeader(skipAuth: boolean): string {
@@ -585,58 +568,22 @@ export class HttpClient {
     return profile !== undefined ? profile.acceptLanguage : DEFAULT_ACCEPT_LANGUAGE;
   }
 
-  private captureSetCookie(headers: Record<string, string | string[]>): void {
-    if (headers === null || headers === undefined) {
-      return;
-    }
-    let raw: string | string[] | undefined = undefined;
-    const keys: string[] = Object.keys(headers);
-    for (let i = 0; i < keys.length; i++) {
-      if (keys[i].toLowerCase() === 'set-cookie') {
-        raw = headers[keys[i]];
-        break;
-      }
-    }
-    if (raw === undefined) {
-      return;
-    }
-    const lines: string[] = Array.isArray(raw) ? raw : raw.split(/,(?=[^;]+=)/);
-    for (let i = 0; i < lines.length; i++) {
-      const segment: string = lines[i].split(';')[0].trim();
-      const eqIdx: number = segment.indexOf('=');
-      if (eqIdx <= 0) {
-        continue;
-      }
-      const name: string = segment.substring(0, eqIdx).trim();
-      const value: string = segment.substring(eqIdx + 1).trim();
-      // siteLanguageV2 由 setSiteLanguage 独占控制；忽略服务端写入，避免反向覆盖用户偏好。
-      // 否则切换语言后第一次请求生效，但响应的 set-cookie 会把 jar 改回旧值，导致后续请求被服务端锁死。
-      if (name === 'siteLanguageV2') {
-        continue;
-      }
-      if (name.length > 0 && value.length > 0) {
-        this.cookieJar.set(name, value);
-      }
-    }
-  }
-
-  private static isCfBlocked(status: number, body: string, headers: Record<string, string | string[]>): boolean {
-    if (status === 403 || status === 503) {
-      if (headers !== null && headers !== undefined) {
-        const headerKeys: string[] = Object.keys(headers);
-        for (let i = 0; i < headerKeys.length; i++) {
-          const lk: string = headerKeys[i].toLowerCase();
-          if (lk === 'cf-mitigated') {
-            return true;
-          }
+  /**
+   * 仅替换 URL 的 host 段（scheme://host 后必须是 / ? # 或结尾），
+   * 避免 oldDomain 作为子串出现在 path/query 时被误改。
+   */
+  private static swapUrlHost(url: string, oldDomain: string, newDomain: string): string {
+    const schemes: string[] = ['https://', 'http://'];
+    for (let i = 0; i < schemes.length; i++) {
+      const prefix: string = schemes[i] + oldDomain;
+      if (url.startsWith(prefix)) {
+        const rest: string = url.substring(prefix.length);
+        const c: string = rest.length > 0 ? rest.charAt(0) : '';
+        if (rest.length === 0 || c === '/' || c === '?' || c === '#') {
+          return schemes[i] + newDomain + rest;
         }
       }
     }
-    for (let i = 0; i < CF_MARKERS.length; i++) {
-      if (body.indexOf(CF_MARKERS[i]) >= 0) {
-        return true;
-      }
-    }
-    return false;
+    return url;
   }
 }

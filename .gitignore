@@ -17,3 +17,5 @@ build-profile.signing.local.json5
 *.p12
 *.p7b
 *.cer
+/.secure
+/.deveco

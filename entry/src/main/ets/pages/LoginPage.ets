@@ -173,8 +173,10 @@ export struct LoginPage {
       } else {
         await AuthVM.login(this.email.trim(), this.password);
       }
-      Logger.i(TAG, 'login success, replace to MainPage');
-      AppRouter.replace(Routes.MAIN);
+      Logger.i(TAG, 'login success, popping back to caller');
+      // 游客模式：登录页总是从 MAIN/Settings/BookDetail push 上来的，
+      // pop 回调用页，其 @StorageProp(USER) 将自动刷新为已登录状态。
+      AppRouter.pop();
     } catch (err) {
       this.handleLoginError(err);
     } finally {
@@ -226,7 +228,16 @@ export struct LoginPage {
 
   @Builder
   private appBar() {
-    Row() {
+    Row({ space: 12 }) {
+      // 返回按钮（游客模式：登录页可取消返回上一页）
+      Button({ type: ButtonType.Circle, stateEffect: true }) {
+        Image($r('app.media.ic_back')).width(22).height(22);
+      }
+      .width(40)
+      .height(40)
+      .backgroundColor(AppColors.surfaceAlt)
+      .onClick((): void => AppRouter.pop());
+
       // domain pill
       Row({ space: 6 }) {
         Circle({ width: 8, height: 8 }).fill(AppColors.successTeal);
@@ -422,17 +433,11 @@ export struct LoginPage {
   }
 
   /**
-   * 登录页按返回键 → 直接退出 Ability。
-   * 不能让 Navigation 默认 pop——会让栈空，露出 RootPage 的绿色根占位。
+   * 登录页按返回键 → pop 回上一页（设置/详情/主页）。
+   * 游客模式下 LoginPage 总是被 push 上来的，栈底是 MAIN，pop 安全。
    */
   private onLoginBackPressed = (): boolean => {
-    const ctx: common.UIAbilityContext | null =
-      this.getUIContext().getHostContext() as common.UIAbilityContext | null;
-    if (ctx !== null && ctx !== undefined) {
-      ctx.terminateSelf().catch((e: Error) => {
-        Logger.w(TAG, `terminateSelf failed: ${e.message}`);
-      });
-    }
+    AppRouter.pop();
     return true;
   };
 

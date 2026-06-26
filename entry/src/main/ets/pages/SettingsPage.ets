@@ -287,9 +287,9 @@ export struct SettingsPage {
         action: (): void => {
           AuthVM.logout()
             .then((): void => {
-              // 关键：清空整个导航栈再压 LOGIN，否则用户能 back 到主页缓存。
-              AppRouter.clear();
-              AppRouter.replace(Routes.LOGIN);
+              // 游客模式：退登后留在设置页。AppStorage[USER] 变 null 后
+              // accountCard 会自动切换到「登录账号」状态，无需跳转。
+              SettingsPage.toastResource($r('app.string.settings_logout_success'));
             })
             .catch((e: Error): void => {
               Logger.w(TAG, `logout failed: ${e.message}`);
@@ -306,7 +306,8 @@ export struct SettingsPage {
   }
 
   private goLogin(): void {
-    AppRouter.replace(Routes.LOGIN);
+    // 游客模式：用 push 而非 replace，登录成功/取消后能 pop 回设置页。
+    AppRouter.push(Routes.LOGIN);
   }
 
   private goPrivacy(): void {
@@ -351,7 +352,7 @@ export struct SettingsPage {
       .padding({ left: 12, right: 12, top: 12, bottom: 8 })
     }
     .width('100%')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     });

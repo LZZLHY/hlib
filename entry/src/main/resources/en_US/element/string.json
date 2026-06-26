@@ -15,8 +15,11 @@
     { "name": "splash_loading",            "value": "Loading…" },
     { "name": "splash_network_unavailable","value": "Network unavailable, retrying…" },
 
-    { "name": "login_welcome",        "value": "Welcome back" },
-    { "name": "login_subtitle",       "value": "Sign in with your Z-Library account" },
+    { "name": "login_welcome",       "value": "Welcome back" },
+    { "name": "login_subtitle",      "value": "Sign in to your Z-Library account to download books and sync saved items." },
+    { "name": "login_required_title",       "value": "Sign in required" },
+    { "name": "login_required_download_msg", "value": "Downloading books requires a Z-Library account. Tap Sign in to continue." },
+    { "name": "login_required_go",           "value": "Sign in" },
     { "name": "login_email",          "value": "Email" },
     { "name": "login_password",       "value": "Password" },
     { "name": "login_button",         "value": "Sign in" },
@@ -182,8 +185,9 @@
     { "name": "settings_about_version", "value": "Version" },
     { "name": "settings_about_open_source","value": "Open source notice" },
     { "name": "settings_about_feedback","value": "Feedback" },
-    { "name": "settings_logout",        "value": "Sign out" },
-    { "name": "settings_logout_confirm","value": "Confirm sign out?" },
+    { "name": "settings_logout",        "value": "Log out" },
+    { "name": "settings_logout_confirm","value": "Log out?" },
+    { "name": "settings_logout_success", "value": "Signed out" },
     { "name": "settings_downloads_left","value": "Downloads left today" },
 
     { "name": "domain_dialog_title",      "value": "Select Line" },
@@ -220,6 +224,7 @@
     { "name": "domain_custom_dialog_title","value": "Custom line" },
     { "name": "domain_custom_input_label","value": "Domain" },
     { "name": "domain_custom_input_hint", "value": "e.g. z-library.sk" },
+    { "name": "domain_custom_invalid",    "value": "Invalid domain format" },
     { "name": "domain_save",              "value": "Save" },
     { "name": "domain_cancel",            "value": "Cancel" },
 

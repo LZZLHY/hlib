@@ -281,8 +281,7 @@ export struct FilterDialog {
     .width('92%')
     .height('72%')
     .constraintSize({ maxWidth: 520 })
-    .backgroundColor('#E6FFFFFF')
-    .backgroundBlurStyle(BlurStyle.Thick, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_THICK, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     })

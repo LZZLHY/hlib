@@ -5,6 +5,8 @@
  * SearchTab 的"切线路"回调由本页持有 DomainSelectorDialog，避免重复创建。
  *
  * aboutToAppear 触发 FavoritesVM.init / DownloadVM.init，把持久化数据回灌 AppStorage。
+ *
+ * P4 升级：底部导航使用 HdsTabs + barFloatingStyle 沉浸光感。
  */
 
 import { common } from '@kit.AbilityKit';
@@ -27,6 +29,7 @@ import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 import { Layout } from '../utils/Layout';
 import { Breakpoint, NavStyle } from '../storage/AppStorageKeys';
+import { HdsTabs, HdsTabsController, hdsMaterial } from '@kit.UIDesignKit';
 
 const TAG: string = 'MainPage';
 
@@ -36,7 +39,7 @@ export struct MainPage {
   @StorageProp(AppStorageKeys.BREAKPOINT) bp: Breakpoint = 'sm';
   @StorageProp(AppStorageKeys.NAV_STYLE) navStyle: NavStyle = 'auto';
   @State private currentIndex: number = 0;
-  private tabsController: TabsController = new TabsController();
+  private tabsController: HdsTabsController = new HdsTabsController();
 
   /** 上次按返回键时间戳，用于"再按一次退出"逻辑。 */
   @State private lastBackTs: number = 0;
@@ -93,6 +96,28 @@ export struct MainPage {
   }
 
   /**
+   * 底部 Tab 项：图标（选中态用 filled 版）+ 文字标签。
+   * HdsTabs 的 .tabBar() 只传字符串时不会渲染图标——这里用自定义 Builder 把图标补回来。
+   */
+  @Builder
+  private bottomBarItem(index: number, icon: Resource, iconFilled: Resource, label: ResourceStr) {
+    Column({ space: 2 }) {
+      Image(this.currentIndex === index ? iconFilled : icon)
+        .width(24)
+        .height(24)
+        .objectFit(ImageFit.Contain);
+      Text(label)
+        .fontSize(AppFontSize.caption)
+        .fontColor(this.currentIndex === index ? AppColors.brandPrimary : AppColors.textSecondary)
+        .fontWeight(this.currentIndex === index ? FontWeight.Medium : FontWeight.Regular)
+        .maxLines(1);
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center);
+  }
+
+  /**
    * 处理 NavDestination 系统返回（包括手势返回 / 三键返回）。
    *
    * 行为：
@@ -141,65 +166,47 @@ export struct MainPage {
           });
         }
 
-        // Tabs 铺满剩余宽度（或整屏宽，底栏模式下）
-        Stack({ alignContent: Alignment.Bottom }) {
-          Tabs({ barPosition: BarPosition.End, index: this.currentIndex, controller: this.tabsController }) {
+        // Tabs 铺满剩余宽度（或整屏宽）
+        Column() {
+          HdsTabs({ controller: this.tabsController }) {
             TabContent() {
               HomeTab({
                 onSearchTap: (): void => this.switchToSearch(),
                 onSettingsTap: (): void => this.goSettings(),
               });
             }
-            .tabBar($r('app.string.tab_home'))
+            .tabBar(this.bottomBarItem(0, $r('app.media.ic_tab_home'), $r('app.media.ic_tab_home_filled'), $r('app.string.tab_home')))
 
             TabContent() {
               SearchTab({ onOpenDomainSelector: (): void => this.openDomainSelector() });
             }
-            .tabBar($r('app.string.tab_search'))
+            .tabBar(this.bottomBarItem(1, $r('app.media.ic_tab_search'), $r('app.media.ic_tab_search_filled'), $r('app.string.tab_search')))
 
             TabContent() {
               FavoritesTab();
             }
-            .tabBar($r('app.string.tab_favorites'))
+            .tabBar(this.bottomBarItem(2, $r('app.media.ic_tab_favorites'), $r('app.media.ic_tab_favorites_filled'), $r('app.string.tab_favorites')))
 
             TabContent() {
               DownloadsTab();
             }
-            .tabBar($r('app.string.tab_downloads'))
+            .tabBar(this.bottomBarItem(3, $r('app.media.ic_tab_downloads'), $r('app.media.ic_tab_downloads_filled'), $r('app.string.tab_downloads')))
           }
-          .width('100%')
-          .height('100%')
-          .barHeight(0)
-          .barMode(BarMode.Fixed)
-          .scrollable(false)
-          .onChange((index: number) => {
+          .barPosition(BarPosition.End)
+          .barOverlap(true)
+          .barFloatingStyle({
+            systemMaterialEffect: {
+              materialType: hdsMaterial.MaterialType.IMMERSIVE,
+              materialLevel: hdsMaterial.MaterialLevel.ADAPTIVE,
+            },
+            barBottomMargin: this.navBarHeight + 12,
+          })
+          .onSelected((index: number) => {
             this.currentIndex = index;
           })
-          .backgroundColor(AppColors.bgCanvas);
-
-          // Floating capsule tab bar —— 仅当导航解析为 bottom 时显示
-          if (Layout.resolveNavStyle(this.bp, this.navStyle) === 'bottom') {
-            Row() {
-              Row() {
-                this.floatingTabItem($r('app.string.tab_home'), $r('app.media.ic_tab_home'), $r('app.media.ic_tab_home_filled'), 0);
-                this.floatingTabItem($r('app.string.tab_search'), $r('app.media.ic_tab_search'), $r('app.media.ic_tab_search_filled'), 1);
-                this.floatingTabItem($r('app.string.tab_favorites'), $r('app.media.ic_tab_favorites'), $r('app.media.ic_tab_favorites_filled'), 2);
-                this.floatingTabItem($r('app.string.tab_downloads'), $r('app.media.ic_tab_downloads'), $r('app.media.ic_tab_downloads_filled'), 3);
-              }
-              .width('100%')
-              .height(56)
-              .constraintSize({ maxWidth: 480 })
-              .borderRadius(28)
-              .backgroundBlurStyle(BlurStyle.Thin, {
-                colorMode: ThemeColorMode.SYSTEM,
-                adaptiveColor: AdaptiveColor.DEFAULT,
-              })
-              .shadow({ radius: 16, color: '#1A000000', offsetX: 0, offsetY: 4 });
-            }
-            .width('100%')
-            .justifyContent(FlexAlign.Center)
-            .padding({ left: 12, right: 12, bottom: this.navBarHeight + 12 });
-          }
+          .backgroundColor(AppColors.bgCanvas)
+          .width('100%')
+          .height('100%');
         }
         .layoutWeight(1)
         .height('100%');
@@ -211,25 +218,5 @@ export struct MainPage {
     .hideTitleBar(true)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .onBackPressed(this.onMainBackPressed);
-  }
-
-  @Builder
-  private floatingTabItem(label: ResourceStr, icon: Resource, iconFilled: Resource, idx: number) {
-    Column({ space: 2 }) {
-      Image(this.currentIndex === idx ? iconFilled : icon)
-        .width(22)
-        .height(22)
-        .objectFit(ImageFit.Contain);
-      Text(label)
-        .fontSize(AppFontSize.caption)
-        .fontColor(this.currentIndex === idx ? AppColors.brandPrimary : AppColors.textSecondary)
-        .fontWeight(this.currentIndex === idx ? FontWeight.Bold : FontWeight.Normal);
-    }
-    .layoutWeight(1)
-    .height('100%')
-    .justifyContent(FlexAlign.Center)
-    .onClick(() => {
-      this.tabsController.changeIndex(idx);
-    });
   }
 }

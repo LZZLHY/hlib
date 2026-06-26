@@ -16,7 +16,10 @@
     { "name": "splash_network_unavailable", "value": "网络不可用，正在重试…" },
 
     { "name": "login_welcome",       "value": "欢迎回来" },
-    { "name": "login_subtitle",      "value": "请使用 Z-Library 账号登录" },
+    { "name": "login_subtitle",      "value": "登录 Z-Library 账号后可下载书籍、同步云收藏" },
+    { "name": "login_required_title",       "value": "需要登录" },
+    { "name": "login_required_download_msg", "value": "下载书籍需要登录 Z-Library 账号。点击去登录即可开始。" },
+    { "name": "login_required_go",           "value": "去登录" },
     { "name": "login_email",         "value": "邮箱" },
     { "name": "login_password",      "value": "密码" },
     { "name": "login_button",        "value": "登录" },
@@ -184,6 +187,7 @@
     { "name": "settings_about_feedback","value": "意见反馈" },
     { "name": "settings_logout",        "value": "退出登录" },
     { "name": "settings_logout_confirm","value": "确认退出登录？" },
+    { "name": "settings_logout_success", "value": "已退出登录" },
     { "name": "settings_downloads_left","value": "今日剩余下载次数" },
 
     { "name": "domain_dialog_title",     "value": "选择线路" },
@@ -220,6 +224,7 @@
     { "name": "domain_custom_dialog_title", "value": "自定义线路" },
     { "name": "domain_custom_input_label",  "value": "域名地址" },
     { "name": "domain_custom_input_hint",   "value": "例如：z-library.sk" },
+    { "name": "domain_custom_invalid",      "value": "域名格式不正确" },
     { "name": "domain_save",                "value": "保存" },
     { "name": "domain_cancel",              "value": "取消" },
 

@@ -123,7 +123,7 @@ export struct ErrorLogPage {
       .padding(AppSpace.s16)
     }
     .width('100%')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     });

@@ -23,6 +23,7 @@ import { BookCoverImage } from '../components/BookCoverImage';
 import { EmptyState } from '../components/EmptyState';
 import { SearchBar } from '../components/SearchBar';
 import { ErrorHelper } from '../utils/ErrorHelper';
+import { Format } from '../utils/Format';
 import { I18n } from '../utils/I18n';
 import { AppRouter } from '../utils/AppRouter';
 import { Logger } from '../utils/Logger';
@@ -154,7 +155,7 @@ export struct HistoryPage {
       }
     }
     .width('100%')
-    .backgroundBlurStyle(BlurStyle.Thin, {
+    .backgroundBlurStyle(BlurStyle.BACKGROUND_REGULAR, {
       colorMode: ThemeColorMode.SYSTEM,
       adaptiveColor: AdaptiveColor.DEFAULT,
     });
@@ -198,11 +199,11 @@ export struct HistoryPage {
               .borderRadius(4);
           }
           if (item.filesize !== undefined && item.filesize > 0) {
-            Text(HistoryPage.formatSize(item.filesize))
+            Text(Format.size(item.filesize))
               .fontSize(AppFontSize.caption)
               .fontColor(AppColors.textTertiary);
           }
-          Text(HistoryPage.formatDate(item.downloadedAt))
+          Text(Format.date(item.downloadedAt))
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.textTertiary);
         }
@@ -287,23 +288,5 @@ export struct HistoryPage {
     }
     .hideTitleBar(true)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM]);
-  }
-
-  // ── 静态工具 ──
-
-  private static formatSize(bytes: number): string {
-    if (bytes <= 0) return '—';
-    const KB: number = 1024;
-    const MB: number = 1024 * 1024;
-    const GB: number = 1024 * 1024 * 1024;
-    if (bytes >= GB) return `${(bytes / GB).toFixed(2)} GB`;
-    if (bytes >= MB) return `${(bytes / MB).toFixed(1)} MB`;
-    if (bytes >= KB) return `${(bytes / KB).toFixed(0)} KB`;
-    return `${bytes} B`;
-  }
-
-  private static formatDate(iso: string): string {
-    if (iso.length === 0) return '';
-    return iso.slice(0, 10);
   }
 }
