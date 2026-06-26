@@ -19,3 +19,4 @@ build-profile.signing.local.json5
 *.cer
 /.secure
 /.deveco
+/skills

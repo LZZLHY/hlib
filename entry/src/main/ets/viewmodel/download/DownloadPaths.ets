@@ -7,6 +7,7 @@
 import common from '@ohos.app.ability.common';
 import { Book } from '../../model/Book';
 import { AppStorageKeys } from '../../storage/AppStorageKeys';
+import { PublicDownloadDir } from '../../utils/PublicDownloadDir';
 
 export class DownloadPaths {
   /** title 清洗非法字符 + 截断 + 拼 id 与扩展名。 */
@@ -18,17 +19,19 @@ export class DownloadPaths {
 
   /**
    * 解析 AppStorage[DOWNLOAD_PATH]：
-   *   '' / 'default' / undefined → ctx.filesDir/Downloads（沙箱内）
-   *   'cache'                    → ctx.cacheDir/Downloads（缓存目录）
-   *   其它非空                    → 当作绝对路径直接拼
+   *   '' / 'default' / undefined → ctx.filesDir/Downloads（应用沙箱内）
+   *   'public'                   → 公共「下载」目录下的应用专属目录（Environment.getUserDownloadDir）；
+   *                                不支持 / 未授权时回退沙箱。
    */
   static buildFilePath(ctx: common.UIAbilityContext, filename: string): string {
     const custom: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
-    if (custom === 'cache') {
-      return `${ctx.cacheDir}/Downloads/${filename}`;
-    }
-    if (custom !== undefined && custom.length > 0 && custom !== 'default') {
-      return `${custom}/${filename}`;
+    if (custom === 'public') {
+      const dir: string = PublicDownloadDir.resolveDir();
+      if (dir.length > 0) {
+        return `${dir}/${filename}`;
+      }
+      // 回退沙箱
+      return `${ctx.filesDir}/Downloads/${filename}`;
     }
     return `${ctx.filesDir}/Downloads/${filename}`;
   }

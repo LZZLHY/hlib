@@ -8,7 +8,7 @@ export class AppStorageKeys {
   static readonly DOMAIN: string         = 'pref_domain';        // 当前 Z-Library 镜像域
   static readonly THEME_MODE: string     = 'pref_themeMode';     // 'system' | 'light' | 'dark'
   static readonly LOCALE: string         = 'pref_locale';        // '' | 'zh-Hans' | 'en-US'
-  static readonly DOWNLOAD_PATH: string  = 'pref_downloadPath';  // 自定义下载目录（'' / 'default' / 'cache' / 绝对路径）
+  static readonly DOWNLOAD_PATH: string  = 'pref_downloadPath';  // 下载目录：'' / 'default'（沙箱）| 'public'（公共下载目录·应用专属）
 
   // ── 协议层加固偏好（存 settings 分组） ──
   static readonly PROXY_ENABLED: string          = 'pref_proxyEnabled';        // boolean

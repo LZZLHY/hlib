@@ -24,6 +24,7 @@ import { BookCoverImage } from '../components/BookCoverImage';
 import { EmptyState } from '../components/EmptyState';
 import { ErrorHelper } from '../utils/ErrorHelper';
 import { Format } from '../utils/Format';
+import { PublicDownloadDir } from '../utils/PublicDownloadDir';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
@@ -91,13 +92,14 @@ export struct DownloadsTab {
       DownloadsTab.toast(I18n.ts('downloads_open_folder_failed'));
       return;
     }
-    // DOWNLOAD_PATH 可能是 'cache' / 'default' / 公共夹 URI / ''
+    // DOWNLOAD_PATH 可能是 'public' / 'default' / ''
     const cfg: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
     let folder: string;
-    if (cfg === 'cache') {
-      folder = `${ctx.cacheDir}/Downloads`;
-    } else if (cfg !== undefined && cfg.length > 0 && cfg !== 'default') {
-      folder = cfg;
+    if (cfg === 'public') {
+      folder = PublicDownloadDir.resolveDir();
+      if (folder.length === 0) {
+        folder = `${ctx.filesDir}/Downloads`;
+      }
     } else {
       folder = `${ctx.filesDir}/Downloads`;
     }

@@ -1,7 +1,7 @@
 {
-  "versionCode": 1000005,
+  "versionCode": 1000006,
   "versionName": "1.0.1",
   "releaseUrl": "https://github.com/LZZLHY/hlib/releases/latest",
-  "notes": "新增启动自动检查更新（红点提示）；公共下载目录持久化授权；重构下载/网络模块、日志脱敏；移除公开仓库泄漏项。",
+  "notes": "下载目录改为「沙箱 / 公共下载目录」二选一（公共目录写入应用专属文件夹，需授权）；启动自动检查更新+红点；重构与安全加固。",
   "changelogUrl": "https://github.com/LZZLHY/hlib/blob/master/docs/CHANGELOG.md"
 }

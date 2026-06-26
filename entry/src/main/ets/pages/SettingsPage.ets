@@ -13,8 +13,6 @@ import { ConfigurationConstant } from '@kit.AbilityKit';
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { i18n } from '@kit.LocalizationKit';
-import { picker } from '@kit.CoreFileKit';
-import { BusinessError } from '@kit.BasicServicesKit';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
 import { AppStorageKeys, ThemeMode, Breakpoint, NavStyle } from '../storage/AppStorageKeys';
@@ -35,13 +33,13 @@ import { PreferencesStore } from '../storage/PreferencesStore';
 import { DomainSelectorDialog } from '../components/DomainSelectorDialog';
 import { CustomDomainDialog } from '../components/CustomDomainDialog';
 import { AppRouter, Routes } from '../utils/AppRouter';
-import { PublicDirAccess } from '../utils/PublicDirAccess';
+import { PublicDownloadDir } from '../utils/PublicDownloadDir';
 import { I18n } from '../utils/I18n';
 import { Logger } from '../utils/Logger';
 
 const TAG: string = 'SettingsPage';
 
-type DownloadDir = 'default' | 'cache' | 'public';
+type DownloadDir = 'default' | 'public';
 
 @Component
 export struct SettingsPage {
@@ -183,58 +181,42 @@ export struct SettingsPage {
 
   private setDownloadDir(dir: DownloadDir): void {
     if (dir === 'public') {
-      this.pickPublicFolder().catch((e: Object): void => {
-        Logger.w(TAG, `pickPublicFolder failed: ${(e as Error).message}`);
-        SettingsPage.toastResource($r('app.string.settings_dir_picker_failed'));
+      this.enablePublicDir().catch((e: Object): void => {
+        Logger.w(TAG, `enablePublicDir failed: ${(e as Error).message}`);
+        SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
       });
       return;
     }
-    this.downloadPath = dir === 'cache' ? 'cache' : '';
-    SettingsPage.toastResource(
-      dir === 'cache' ? $r('app.string.settings_dir_cache_done') : $r('app.string.settings_dir_default_done'),
-    );
+    this.downloadPath = '';
+    SettingsPage.toastResource($r('app.string.settings_dir_default_done'));
   }
 
-  /** 通过系统 picker 选择一个公共下载文件夹（用户授权后会回写持久化 URI 到 DOWNLOAD_PATH）。 */
-  private async pickPublicFolder(): Promise<void> {
-    const ctxOpt: Context | undefined = this.getUIContext().getHostContext();
-    if (ctxOpt === undefined) {
-      SettingsPage.toastResource($r('app.string.settings_dir_picker_failed'));
+  /**
+   * 切到公共「下载」目录：先申请 READ_WRITE_DOWNLOAD_DIRECTORY 权限（弹窗），
+   * 授权后才切换。文件最终落到公共 Download 下以应用命名的专属目录（Environment.getUserDownloadDir）。
+   */
+  private async enablePublicDir(): Promise<void> {
+    if (!PublicDownloadDir.isSupported()) {
+      SettingsPage.toastResource($r('app.string.settings_dir_public_unsupported'));
       return;
     }
-    // 正向 canIUse 守卫：FOLDER 选择属于较新 syscap，部分设备无该能力时降级提示
-    if (canIUse('SystemCapability.FileManagement.UserFileService.FolderSelection')) {
-      try {
-        const docPicker: picker.DocumentViewPicker = new picker.DocumentViewPicker(ctxOpt);
-        const opts: picker.DocumentSelectOptions = new picker.DocumentSelectOptions();
-        opts.selectMode = picker.DocumentSelectMode.FOLDER;
-        const uris: string[] = await docPicker.select(opts);
-        if (uris.length === 0) {
-          return; // 用户取消
-        }
-        const folderUri: string = uris[0];
-        // 关键：持久化该目录的写入授权（FILE_ACCESS_PERSIST），否则重启后失去权限、下载会失败
-        const persisted: boolean = await PublicDirAccess.persistWrite(folderUri);
-        if (!persisted) {
-          SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
-          return; // 未拿到持久授权则不切换，避免之后写入失败
-        }
-        this.downloadPath = folderUri;
-        SettingsPage.toastResource($r('app.string.settings_dir_public_done'));
-      } catch (e) {
-        const be: BusinessError = e as BusinessError;
-        Logger.w(TAG, `picker failed: code=${be.code} msg=${be.message}`);
-        SettingsPage.toastResource($r('app.string.settings_dir_picker_failed'));
-      }
-    } else {
-      SettingsPage.toastResource($r('app.string.settings_dir_picker_unsupported'));
+    const ctxOpt: Context | undefined = this.getUIContext().getHostContext();
+    if (ctxOpt === undefined) {
+      SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
+      return;
     }
+    const ctx: common.UIAbilityContext = ctxOpt as common.UIAbilityContext;
+    const granted: boolean = await PublicDownloadDir.requestPermission(ctx);
+    if (!granted) {
+      SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
+      return;
+    }
+    this.downloadPath = 'public';
+    SettingsPage.toastResource($r('app.string.settings_dir_public_done'));
   }
 
   private currentDownloadDir(): DownloadDir {
-    if (this.downloadPath === 'cache') return 'cache';
-    if (this.downloadPath.length > 0 && this.downloadPath !== 'default') return 'public';
-    return 'default';
+    return this.downloadPath === 'public' ? 'public' : 'default';
   }
 
   private confirmClearCache(): void {
@@ -888,12 +870,11 @@ export struct SettingsPage {
           .alignSelf(ItemAlign.Start);
         Row({ space: 8 }) {
           this.dirPill('default', $r('app.string.settings_download_dir_default'));
-          this.dirPill('cache', $r('app.string.settings_download_dir_cache'));
           this.dirPill('public', $r('app.string.settings_download_dir_public'));
         }
         .width('100%');
-        if (this.currentDownloadDir() === 'public' && this.downloadPath.length > 0) {
-          Text(this.downloadPath)
+        if (this.currentDownloadDir() === 'public') {
+          Text(PublicDownloadDir.resolveDir())
             .fontSize(AppFontSize.caption)
             .fontColor(AppColors.textTertiary)
             .maxLines(2)

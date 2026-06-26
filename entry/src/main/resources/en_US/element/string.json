@@ -420,8 +420,8 @@
     { "name": "update_go",                    "value": "Go to download" },
     { "name": "update_check_failed",          "value": "Update check failed, try again later" },
 
-    { "name": "reason_file_access_persist",   "value": "Used to save books to the public Downloads folder you choose and keep write access to it across restarts" },
-    { "name": "settings_dir_public_denied",   "value": "Write permission not granted; kept the previous download directory" },
-    { "name": "settings_dir_folder_phone_only", "value": "Public folder selection is only supported on PC / 2in1; use the default directory on phone / tablet" }
+    { "name": "reason_download_dir",          "value": "Used to save books into an app-named folder under the public Downloads directory, so you can find them in Files" },
+    { "name": "settings_dir_public_denied",   "value": "Download-directory permission not granted; kept the sandbox directory" },
+    { "name": "settings_dir_public_unsupported", "value": "Saving to the public Downloads folder is not supported on this device" }
   ]
 }
