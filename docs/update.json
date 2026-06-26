@@ -2,6 +2,6 @@
   "versionCode": 1000008,
   "versionName": "1.0.1",
   "releaseUrl": "https://github.com/LZZLHY/hlib/releases/latest",
-  "notes": "公共下载目录设备自适应：平板静默写入「下载/<应用名>/」；手机下载时经系统文件选择器确认一次，直接把书保存到「下载/<应用名>/」。打开下载文件夹改用系统深链。",
+  "notes": "公共下载目录设备自适应：平板静默写入「下载/<应用名>/」；手机经系统下载目录（DOWNLOAD 模式）直达，并持久化授权，重启后仍可写入与在应用内重新打开。打开下载文件夹用系统深链。",
   "changelogUrl": "https://github.com/LZZLHY/hlib/blob/master/docs/CHANGELOG.md"
 }

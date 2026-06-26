@@ -422,6 +422,7 @@
     { "name": "update_check_failed",          "value": "Update check failed, try again later" },
 
     { "name": "reason_download_dir",          "value": "Used to save books into an app-named folder under the public Downloads directory, so you can find them in Files" },
+    { "name": "reason_file_persist",          "value": "Used to remember access to the public Downloads folder so you don't re-pick it each download and can reopen downloaded files in-app" },
     { "name": "settings_dir_public_denied",   "value": "Download-directory permission not granted; kept the sandbox directory" },
     { "name": "settings_dir_public_unsupported", "value": "Saving to the public Downloads folder is not supported on this device" },
 

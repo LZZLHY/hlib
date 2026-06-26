@@ -203,14 +203,8 @@ export struct SettingsPage {
       return;
     }
     const ctx: common.UIAbilityContext = ctxOpt as common.UIAbilityContext;
-    // 手机端：公共目录写入须在每次下载时经 DocumentViewPicker 确认，这里只切换偏好。
-    if (PublicDownloadDir.needsPicker()) {
-      this.downloadPath = 'public';
-      SettingsPage.toastResource($r('app.string.settings_dir_public_done'));
-      return;
-    }
-    // 平板：静默路线，申请下载目录读写权限后切换。
-    const dir: string = await PublicDownloadDir.ensureDir(ctx);
+    // 平板申请权限；手机经 DOWNLOAD 模式静默确立目录并持久化。失败回退。
+    const dir: string = await PublicDownloadDir.ensurePublicDirPath(ctx);
     if (dir.length === 0) {
       SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
       return;
@@ -878,7 +872,7 @@ export struct SettingsPage {
         }
         .width('100%');
         if (this.currentDownloadDir() === 'public') {
-          Text(PublicDownloadDir.isTabletSilent()
+          Text(PublicDownloadDir.resolveDir().length > 0
             ? PublicDownloadDir.resolveDir()
             : I18n.ts('settings_download_dir_phone_hint'))
             .fontSize(AppFontSize.caption)

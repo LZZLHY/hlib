@@ -34,8 +34,10 @@ export class AppStorageKeys {
   static readonly APP_VERSION: string      = 'state_appVersion';
   /** 应用包名（bundleName），用于公共下载目录的应用专属子目录。 */
   static readonly BUNDLE_NAME: string      = 'state_bundleName';
-  /** 手机端最近一次 picker 选定的公共下载目录绝对路径（仅用于「打开下载文件夹」/展示，不用于静默写）。 */
+  /** 手机端最近一次 picker 选定的公共下载目录绝对路径（用于打开/展示/按路径读写）。 */
   static readonly PUBLIC_DOWNLOAD_DIR: string = 'pref_publicDownloadDir';
+  /** 手机端公共下载目录的 picker 授权 URI，用于 fileShare 持久化/激活权限（跨重启复用）。 */
+  static readonly PUBLIC_DOWNLOAD_URI: string = 'pref_publicDownloadUri';
 
   // ── 检查更新（自动静默检查写入；UI 用 @StorageProp 订阅显示红点） ──
   /** 是否有可用新版本（自动检查结果，含缓存回灌）。 */

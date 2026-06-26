@@ -121,17 +121,17 @@ export class DownloadVM {
     const initial: Set<string> = new Set<string>();
     initial.add(HttpClient.instance.getDomain());
 
-    // 手机端公共下载目录：必须经 DocumentViewPicker 交互拿到目标路径（本次会话内可写），
-    // 在此选定一次并随重试复用；用户取消则回退沙箱。
+    // 公共下载目录：取目录路径后用 `<目录>/<文件名>` 落盘（平板静默 / 手机经 DOWNLOAD 模式，
+    // 已持久化则直接激活复用）。在 start() 选定一次、随镜像重试复用；失败回退沙箱。
     let filePathOverride: string | undefined = undefined;
     const dirPref: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
-    if (dirPref === 'public' && PublicDownloadDir.needsPicker()) {
-      const filename: string = DownloadPaths.buildFilename(book);
-      const target: string = await PublicDownloadDir.saveTargetPath(ctx, filename);
-      if (target.length > 0) {
-        filePathOverride = target;
+    if (dirPref === 'public') {
+      const dirPath: string = await PublicDownloadDir.ensurePublicDirPath(ctx);
+      if (dirPath.length > 0) {
+        const filename: string = DownloadPaths.buildFilename(book);
+        filePathOverride = `${dirPath}/${filename}`;
       } else {
-        Logger.i(TAG, `picker canceled for ${bookId}, fallback sandbox`);
+        Logger.i(TAG, `public dir unavailable for ${bookId}, fallback sandbox`);
       }
     }
 

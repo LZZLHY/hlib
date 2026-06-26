@@ -143,31 +143,8 @@ export struct DownloadsTab {
       return;
     }
 
-    if (PublicDownloadDir.needsPicker()) {
-      // 手机：DocumentViewPicker 单弹窗批量授权，立即通过返回的 URI 写入
-      const uris: string[] = await PublicDownloadDir.saveFilesViaPicker(ctx, names);
-      if (uris.length === 0) {
-        DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
-        return;
-      }
-      let count: number = 0;
-      const n: number = Math.min(uris.length, srcs.length);
-      for (let i = 0; i < n; i++) {
-        try {
-          PublicDownloadDir.copyPathToUri(srcs[i], uris[i]);
-          count++;
-        } catch (e) {
-          Logger.w(TAG, `copy to uri failed: ${(e as Error).message}`);
-        }
-      }
-      DownloadsTab.toast(count > 0
-        ? I18n.format('downloads_export_done_fmt', [count])
-        : I18n.ts('downloads_export_none'));
-      return;
-    }
-
-    // 平板：申请权限拿到公共目录原始路径，按路径拷贝
-    const dir: string = await PublicDownloadDir.ensureDir(ctx);
+    // 取公共下载目录原始路径（平板静默 / 手机经 DOWNLOAD 模式 + 持久化），按路径拷贝
+    const dir: string = await PublicDownloadDir.ensurePublicDirPath(ctx);
     if (dir.length === 0) {
       DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
       return;
