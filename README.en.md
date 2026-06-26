@@ -13,12 +13,10 @@ Powered by public Z-Library mirrors · Search · Favorites · Read online · Dow
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.1.0%20(API%2024)-0E7C7B?style=flat-square&logo=harmonyos&logoColor=white)](#)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-2EC4B6?style=flat-square)](#)
 [![ArkUI](https://img.shields.io/badge/UI-ArkUI-26A69A?style=flat-square)](#)
-[![Devices](https://img.shields.io/badge/phone·foldable·tablet·2in1-085858?style=flat-square)](#)
 
 [![License](https://img.shields.io/badge/License-MIT-3F7DE0?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-FF9F1C?style=flat-square)](https://github.com/LZZLHY/hlib/releases)
+[![Version](https://img.shields.io/badge/version-1.0.1-FF9F1C?style=flat-square)](https://github.com/LZZLHY/hlib/releases)
 [![Stars](https://img.shields.io/github/stars/LZZLHY/hlib?style=flat-square&color=FFBF69)](https://github.com/LZZLHY/hlib/stargazers)
-[![Privacy](https://img.shields.io/badge/no%20ads%20·%20no%20tracking-2EC4B6?style=flat-square)](docs/privacy-en.md)
 
 [简体中文](README.md) · **English**
 
@@ -43,6 +41,17 @@ The project itself does **not** store, cache or distribute any book content, and
 - **Multi-mirror**: built-in mirrors + concurrent latency test + custom domain + remote manifest sync + one-tap switch on Cloudflare block.
 - **Privacy & security**: credentials encrypted with HUKS AES-256-GCM; local-first data; no third-party analytics / ads / push / crash reporting.
 - **Responsive UI**: phone / foldable / tablet / large screen; bottom nav on small screens, side nav on large; light / dark / system; English & Simplified Chinese.
+
+## Install
+
+> ⚠️ Only an **unsigned HAP** (`entry-default-unsigned.hap`) is provided — there is **no app-store-signed package**. You must **sideload** it.
+
+Download the latest `*-unsigned.hap` from [GitHub Releases](https://github.com/LZZLHY/hlib/releases), then either:
+
+- **Self-sign (recommended)**: open the project in DevEco Studio, set your own debug signing under *Project Structure > Signing Configs*, then Build & Run to your device.
+- **hdc sideload**: enable Developer Mode + USB debugging, run `hdc install path\to\entry-default-unsigned.hap` (the device must allow debug / unsigned apps).
+
+Because it is not store-signed, tapping to install directly is usually blocked — use one of the sideload methods above.
 
 ## Build
 

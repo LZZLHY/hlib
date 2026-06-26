@@ -21,6 +21,7 @@ import { AppStorageKeys, ThemeMode, Breakpoint, NavStyle } from '../storage/AppS
 import { Layout } from '../utils/Layout';
 import { User } from '../model/User';
 import { AuthVM } from '../viewmodel/AuthVM';
+import { UpdateChecker, UpdateManifest, UpdateCheckResult } from '../viewmodel/UpdateChecker';
 import { SpeedTestVM } from '../viewmodel/SpeedTestVM';
 import { DownloadVM } from '../viewmodel/DownloadVM';
 import { HomeVM } from '../viewmodel/HomeVM';
@@ -66,6 +67,10 @@ export struct SettingsPage {
 
   /** 首页推荐内容地区（LANGUAGE_FILTERS 的 key，如 'all'/'chinese'/'english'）。 */
   @State private contentLang: string = 'all';
+
+  /** 「检查更新」行的副文案（检查中 / 已最新 / 发现新版 vX）。 */
+  @State private updateHint: string = '';
+  @State private checkingUpdate: boolean = false;
 
   aboutToAppear(): void {
     this.loadNetworkPrefs().catch((e: Object): void => {
@@ -316,6 +321,58 @@ export struct SettingsPage {
 
   private goHistory(): void {
     AppRouter.push(Routes.HISTORY);
+  }
+
+  /** 检查更新：拉 update.json 比对 versionCode；有新版弹窗，否则更新副文案。 */
+  private onCheckUpdate(): void {
+    if (this.checkingUpdate) {
+      return;
+    }
+    this.checkingUpdate = true;
+    this.updateHint = I18n.ts('update_checking');
+    UpdateChecker.check().then((r: UpdateCheckResult): void => {
+      this.checkingUpdate = false;
+      if (!r.ok) {
+        this.updateHint = '';
+        SettingsPage.toastResource($r('app.string.update_check_failed'));
+        return;
+      }
+      if (r.hasUpdate && r.manifest !== undefined) {
+        const m: UpdateManifest = r.manifest;
+        this.updateHint = I18n.format('update_found_fmt', [m.versionName]);
+        this.showUpdateDialog(m);
+      } else {
+        this.updateHint = I18n.ts('update_latest');
+      }
+    }).catch((e: Object): void => {
+      this.checkingUpdate = false;
+      this.updateHint = '';
+      Logger.w(TAG, `check update failed: ${(e as Error).message}`);
+      SettingsPage.toastResource($r('app.string.update_check_failed'));
+    });
+  }
+
+  private showUpdateDialog(m: UpdateManifest): void {
+    this.getUIContext().showAlertDialog({
+      title: $r('app.string.update_dialog_title'),
+      message: I18n.format('update_dialog_msg_fmt', [m.versionName, m.notes !== undefined ? m.notes : '']),
+      alignment: DialogAlignment.Center,
+      primaryButton: {
+        value: $r('app.string.update_go'),
+        fontColor: AppColors.brandPrimary,
+        action: (): void => {
+          const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+          UpdateChecker.openRelease(ctx, m.releaseUrl).catch((e: Object): void => {
+            Logger.w(TAG, `openRelease failed: ${(e as Error).message}`);
+          });
+        },
+      },
+      secondaryButton: {
+        value: $r('app.string.common_cancel'),
+        fontColor: AppColors.textSecondary,
+        action: (): void => {},
+      },
+    });
   }
 
   private static toast(msg: string): void {
@@ -995,17 +1052,28 @@ export struct SettingsPage {
 
   @Builder
   private aboutCard() {
-    Row() {
-      Text($r('app.string.settings_about_version'))
-        .fontSize(AppFontSize.body)
-        .fontColor(AppColors.textPrimary)
-        .layoutWeight(1);
-      Text(this.appVersion)
-        .fontSize(AppFontSize.bodySm)
-        .fontColor(AppColors.textTertiary);
+    Column() {
+      Row() {
+        Text($r('app.string.settings_about_version'))
+          .fontSize(AppFontSize.body)
+          .fontColor(AppColors.textPrimary)
+          .layoutWeight(1);
+        Text(this.appVersion)
+          .fontSize(AppFontSize.bodySm)
+          .fontColor(AppColors.textTertiary);
+      }
+      .width('100%')
+      .padding({ left: AppSpace.s16, right: AppSpace.s16, top: 14, bottom: 14 });
+
+      Divider().color(AppColors.divider).strokeWidth(0.5).margin({ left: AppSpace.s16 });
+
+      this.settingRow(
+        $r('app.string.settings_check_update'),
+        this.updateHint,
+        (): void => this.onCheckUpdate(),
+      );
     }
     .width('100%')
-    .padding({ left: AppSpace.s16, right: AppSpace.s16, top: 14, bottom: 14 })
     .backgroundColor(AppColors.surface)
     .borderRadius(AppRadius.md);
   }

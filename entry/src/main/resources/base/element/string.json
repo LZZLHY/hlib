@@ -409,6 +409,15 @@
     { "name": "privacy_consent_intro",        "value": "在您使用海阅 (HLib) 前，请先阅读并同意以下条款：\n\n• 本应用为 Z-Library 镜像第三方客户端，所有内容来自您选择的镜像；\n• 仅在本地保存账号凭证（HUKS 加密）、收藏、下载历史、阅读进度和应用偏好，不上传任何数据至开发者服务器；\n• 不接入第三方统计、广告或推送 SDK；\n• 您可随时在「设置 → 清除缓存」中删除全部本地数据。\n\n您可点击下方「查看完整政策」了解详细内容。" },
     { "name": "privacy_consent_view_full",    "value": "查看完整政策" },
     { "name": "privacy_consent_agree",        "value": "同意并继续" },
-    { "name": "privacy_consent_decline",      "value": "不同意并退出" }
+    { "name": "privacy_consent_decline",      "value": "不同意并退出" },
+
+    { "name": "settings_check_update",        "value": "检查更新" },
+    { "name": "update_checking",              "value": "正在检查更新…" },
+    { "name": "update_latest",                "value": "已是最新版本" },
+    { "name": "update_found_fmt",             "value": "发现新版本 %s" },
+    { "name": "update_dialog_title",          "value": "发现新版本" },
+    { "name": "update_dialog_msg_fmt",        "value": "新版本：%s\n\n%s" },
+    { "name": "update_go",                    "value": "前往下载" },
+    { "name": "update_check_failed",          "value": "检查更新失败，请稍后再试" }
   ]
 }

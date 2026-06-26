@@ -13,13 +13,11 @@
 [![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.1.0%20(API%2024)-0E7C7B?style=flat-square&logo=harmonyos&logoColor=white)](#)
 [![ArkTS](https://img.shields.io/badge/Language-ArkTS-2EC4B6?style=flat-square)](#)
 [![ArkUI](https://img.shields.io/badge/UI-ArkUI-26A69A?style=flat-square)](#)
-[![Devices](https://img.shields.io/badge/手机·折叠屏·平板·2in1-085858?style=flat-square)](#)
 
 [![License](https://img.shields.io/badge/License-MIT-3F7DE0?style=flat-square)](LICENSE)
-[![Version](https://img.shields.io/badge/version-1.0.0-FF9F1C?style=flat-square)](https://github.com/LZZLHY/hlib/releases)
+[![Version](https://img.shields.io/badge/version-1.0.1-FF9F1C?style=flat-square)](https://github.com/LZZLHY/hlib/releases)
 [![Stars](https://img.shields.io/github/stars/LZZLHY/hlib?style=flat-square&color=FFBF69)](https://github.com/LZZLHY/hlib/stargazers)
 [![Last commit](https://img.shields.io/github/last-commit/LZZLHY/hlib?style=flat-square&color=2EC4B6)](https://github.com/LZZLHY/hlib/commits)
-[![Privacy](https://img.shields.io/badge/无广告%20·%20无追踪-2EC4B6?style=flat-square)](docs/privacy.md)
 
 **简体中文** · [English](README.en.md)
 
@@ -47,7 +45,14 @@
 
 ## 安装
 
-前往 GitHub Releases 下载最新构建产物（`*.app` 应用包 / `*.hap` Entry 安装包）。安装方式取决于设备、系统版本与签名权限，普通用户建议优先下载 Release 中的 signed app 包。
+> ⚠️ 本项目 **仅提供未签名的 HAP 包**（`entry-default-unsigned.hap`），**不提供应用市场签名包**，需自行 **侧载（sideload）安装**。
+
+前往 [GitHub Releases](https://github.com/LZZLHY/hlib/releases) 下载最新的 `*-unsigned.hap`，任选一种方式安装：
+
+- **方式一 · 自签名安装（推荐）**：用 DevEco Studio 打开本项目，在 *Project Structure > Signing Configs* 配置你自己的调试签名后 Build & Run 安装到设备。
+- **方式二 · hdc 侧载**：设备开启「开发者模式 + USB 调试」，执行 `hdc install path\to\entry-default-unsigned.hap`（设备需允许安装调试 / 未签名应用）。
+
+由于未做应用市场签名，系统的「直接点击安装」通常会被拦截，请使用上述侧载方式。
 
 ## 构建
 
