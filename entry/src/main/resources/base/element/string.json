@@ -421,6 +421,7 @@
     { "name": "update_check_failed",          "value": "检查更新失败，请稍后再试" },
 
     { "name": "reason_download_dir",          "value": "用于将书籍保存到公共「下载」目录下以应用命名的专属文件夹，便于你在文件管理中查看" },
+    { "name": "reason_file_persist",          "value": "用于记住你选定的下载目录授权，避免每次下载都重新选择文件夹" },
     { "name": "settings_dir_public_denied",   "value": "未授予下载目录权限，已保留沙箱目录" },
     { "name": "settings_dir_public_unsupported", "value": "当前设备不支持保存到公共下载目录" },
 

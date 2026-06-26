@@ -13,6 +13,7 @@ import { HttpClient } from '../api/HttpClient';
 import { AppStorageDomainFailover } from '../api/AppStorageDomainFailover';
 import { DomainManifest } from '../api/DomainManifest';
 import { Layout } from '../utils/Layout';
+import { PublicDownloadDir } from '../utils/PublicDownloadDir';
 
 const TAG: string = 'EntryAbility';
 
@@ -60,6 +61,8 @@ export default class EntryAbility extends UIAbility {
       PersistentStorage.persistProp<ThemeMode>(AppStorageKeys.THEME_MODE, 'system');
       PersistentStorage.persistProp<string>(AppStorageKeys.LOCALE, '');
       PersistentStorage.persistProp<string>(AppStorageKeys.DOWNLOAD_PATH, '');
+      PersistentStorage.persistProp<string>(AppStorageKeys.PUBLIC_DOWNLOAD_DIR, '');
+      PersistentStorage.persistProp<string>(AppStorageKeys.PUBLIC_DOWNLOAD_URI, '');
       PersistentStorage.persistProp<NavStyle>(AppStorageKeys.NAV_STYLE, 'auto');
       PersistentStorage.persistProp<string>(AppStorageKeys.PRIVACY_AGREED_VERSION, '');
 
@@ -118,6 +121,11 @@ export default class EntryAbility extends UIAbility {
         Logger.w(TAG, `read versionName failed: ${(e as Error).message}`);
         AppStorage.setOrCreate<string>(AppStorageKeys.APP_VERSION, '1.0.0');
       }
+
+      // 7.1) 手机端：重新激活此前持久化的公共下载目录授权（best-effort，不阻塞启动）
+      PublicDownloadDir.activatePersisted().catch((e: Error): void => {
+        Logger.w(TAG, `activatePersisted failed: ${e.message}`);
+      });
     } catch (e) {
       Logger.e(TAG, 'onCreate init failed', e as Error);
       // 容错：哪怕初始化失败也至少能让 UI 起来

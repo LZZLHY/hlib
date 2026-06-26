@@ -192,22 +192,19 @@ export struct SettingsPage {
   }
 
   /**
-   * 切到公共「下载」目录：先申请 READ_WRITE_DOWNLOAD_DIRECTORY 权限（弹窗），
-   * 授权后才切换。文件最终落到公共 Download 下以应用命名的专属目录（Environment.getUserDownloadDir）。
+   * 切到公共「下载」目录：
+   *   平板静默申请 READ_WRITE_DOWNLOAD_DIRECTORY 权限；手机唤起 DocumentViewPicker 让用户确认一次目录。
+   *   成功后文件落到公共 Download 下以应用命名的专属目录，并持久化复用。
    */
   private async enablePublicDir(): Promise<void> {
-    if (!PublicDownloadDir.isSupported()) {
-      SettingsPage.toastResource($r('app.string.settings_dir_public_unsupported'));
-      return;
-    }
     const ctxOpt: Context | undefined = this.getUIContext().getHostContext();
     if (ctxOpt === undefined) {
       SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
       return;
     }
     const ctx: common.UIAbilityContext = ctxOpt as common.UIAbilityContext;
-    const granted: boolean = await PublicDownloadDir.requestPermission(ctx);
-    if (!granted) {
+    const dir: string = await PublicDownloadDir.ensureDir(ctx);
+    if (dir.length === 0) {
       SettingsPage.toastResource($r('app.string.settings_dir_public_denied'));
       return;
     }

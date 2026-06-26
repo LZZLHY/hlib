@@ -27,10 +27,10 @@ export class DownloadPaths {
     const custom: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
     if (custom === 'public') {
       const dir: string = PublicDownloadDir.resolveDir();
-      if (dir.length > 0) {
+      if (dir.length > 0 && PublicDownloadDir.isWritable(dir)) {
         return `${dir}/${filename}`;
       }
-      // 回退沙箱
+      // 不支持 / 未授权 / 权限失效 → 回退沙箱
       return `${ctx.filesDir}/Downloads/${filename}`;
     }
     return `${ctx.filesDir}/Downloads/${filename}`;

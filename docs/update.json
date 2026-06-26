@@ -1,7 +1,7 @@
 {
-  "versionCode": 1000007,
+  "versionCode": 1000008,
   "versionName": "1.0.1",
   "releaseUrl": "https://github.com/LZZLHY/hlib/releases/latest",
-  "notes": "平板端：侧边栏/自动模式下不再叠加底部悬浮栏；下载页按目录类型显示「打开下载文件夹」（公共目录）或「导出文件」（沙箱内，可一键导出到公共下载目录）。",
+  "notes": "公共下载目录改为「设备自适应」：平板静默写入，手机经文件选择器确认一次后持久化复用（授权一次、长期有效），书籍直接落到「下载/<应用名>/」；打开下载文件夹改用系统深链。",
   "changelogUrl": "https://github.com/LZZLHY/hlib/blob/master/docs/CHANGELOG.md"
 }

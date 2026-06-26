@@ -9,9 +9,8 @@
  * 状态：AppStorage[DOWNLOAD_TASKS] / [DOWNLOAD_HISTORY]
  */
 
-import { common, Want, wantConstant } from '@kit.AbilityKit';
-import { BusinessError } from '@kit.BasicServicesKit';
-import { fileUri, fileIo } from '@kit.CoreFileKit';
+import { common } from '@kit.AbilityKit';
+import { fileIo } from '@kit.CoreFileKit';
 import { promptAction } from '@kit.ArkUI';
 import { AppColors } from '../theme/AppColors';
 import { AppFontSize, AppRadius, AppSpace } from '../theme/AppTextStyles';
@@ -98,28 +97,7 @@ export struct DownloadsTab {
       DownloadsTab.toast(I18n.ts('downloads_open_folder_failed'));
       return;
     }
-    // DOWNLOAD_PATH 可能是 'public' / 'default' / ''
-    const cfg: string | undefined = AppStorage.get<string>(AppStorageKeys.DOWNLOAD_PATH);
-    let folder: string;
-    if (cfg === 'public') {
-      folder = PublicDownloadDir.resolveDir();
-      if (folder.length === 0) {
-        folder = `${ctx.filesDir}/Downloads`;
-      }
-    } else {
-      folder = `${ctx.filesDir}/Downloads`;
-    }
-    const uri: string = folder.startsWith('file://') ? folder : fileUri.getUriFromPath(folder);
-    const want: Want = {
-      action: 'ohos.want.action.viewData',
-      uri: uri,
-      type: 'resource/directory',
-      flags: wantConstant.Flags.FLAG_AUTH_READ_URI_PERMISSION,
-    };
-    ctx.startAbility(want).catch((e: BusinessError): void => {
-      Logger.w(TAG, `openFolder failed: code=${e.code} msg=${e.message}`);
-      DownloadsTab.toast(I18n.ts('downloads_open_folder_failed'));
-    });
+    PublicDownloadDir.openFolder(ctx);
   }
 
   /** 沙箱内场景：把已完成文件导出到公共下载目录（平板支持）。 */
@@ -141,18 +119,9 @@ export struct DownloadsTab {
   }
 
   private async doExport(ctx: common.UIAbilityContext, items: DownloadHistoryItem[]): Promise<void> {
-    if (!PublicDownloadDir.isSupported()) {
-      DownloadsTab.toast(I18n.ts('settings_dir_public_unsupported'));
-      return;
-    }
-    const granted: boolean = await PublicDownloadDir.requestPermission(ctx);
-    if (!granted) {
-      DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
-      return;
-    }
-    const dir: string = PublicDownloadDir.resolveDir();
+    const dir: string = await PublicDownloadDir.ensureDir(ctx);
     if (dir.length === 0) {
-      DownloadsTab.toast(I18n.ts('settings_dir_public_unsupported'));
+      DownloadsTab.toast(I18n.ts('settings_dir_public_denied'));
       return;
     }
     // 确保目录存在
