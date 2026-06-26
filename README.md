@@ -1,11 +1,31 @@
+<div align="center">
+
+<img src="https://raw.githubusercontent.com/LZZLHY/hlib/master/docs/logo.svg" width="120" alt="海阅 HLib" />
+
 # 海阅 HLib
 
-> HarmonyOS 第三方电子图书阅读客户端。  
-> 基于 Z-Library 公开镜像 API，专注搜索、收藏、在线阅读、下载与多镜像线路管理。
+**HarmonyOS 第三方电子图书阅读客户端**
 
-[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-ArkTS-0E7C7B)](#)
-[![ArkUI](https://img.shields.io/badge/UI-ArkUI-2EC4B6)](#)
-[![License](https://img.shields.io/badge/License-MIT-blue.svg)](#许可证)
+基于 Z-Library 公开镜像 · 搜索 · 收藏 · 在线阅读 · 下载 · 多镜像线路管理
+
+<br/>
+
+[![HarmonyOS](https://img.shields.io/badge/HarmonyOS-6.1.0%20(API%2024)-0E7C7B?style=flat-square&logo=harmonyos&logoColor=white)](#)
+[![ArkTS](https://img.shields.io/badge/Language-ArkTS-2EC4B6?style=flat-square)](#)
+[![ArkUI](https://img.shields.io/badge/UI-ArkUI-26A69A?style=flat-square)](#)
+[![Devices](https://img.shields.io/badge/手机·折叠屏·平板·2in1-085858?style=flat-square)](#)
+
+[![License](https://img.shields.io/badge/License-MIT-3F7DE0?style=flat-square)](LICENSE)
+[![Version](https://img.shields.io/badge/version-1.0.0-FF9F1C?style=flat-square)](https://github.com/LZZLHY/hlib/releases)
+[![Stars](https://img.shields.io/github/stars/LZZLHY/hlib?style=flat-square&color=FFBF69)](https://github.com/LZZLHY/hlib/stargazers)
+[![Last commit](https://img.shields.io/github/last-commit/LZZLHY/hlib?style=flat-square&color=2EC4B6)](https://github.com/LZZLHY/hlib/commits)
+[![Privacy](https://img.shields.io/badge/无广告%20·%20无追踪-2EC4B6?style=flat-square)](docs/privacy.md)
+
+**简体中文** · [English](README.en.md)
+
+</div>
+
+---
 
 ## 简介
 
@@ -15,105 +35,74 @@
 
 ## 核心功能
 
-- **图书浏览**
-  - 首页推荐、热门图书、近期上传。
-  - 支持内容语言偏好，优化中文/英文等地区内容展示。
-
-- **高级搜索**
-  - 关键词搜索。
-  - 支持语言、排序、文件格式、出版年份筛选。
-  - 支持分页浏览搜索结果。
-
-- **书籍详情**
-  - 展示封面、标题、作者、出版社、年份、语言、页数、格式、大小、简介等信息。
-  - 支持相似书籍推荐。
-  - 支持收藏、在线阅读、下载。
-
-- **在线阅读**
-  - 使用 ArkWeb 加载在线阅读页面。
-  - 自动注入登录 Cookie。
-  - 支持阅读进度保存与恢复。
-  - 支持字体大小切换、全屏阅读、Web 内返回。
-
-- **下载管理**
-  - 流式下载电子书文件。
-  - 显示下载进度、速度相关状态与历史记录。
-  - 支持打开文件、分享文件、打开下载目录。
-  - 下载失败时可自动尝试备用镜像。
-
-- **收藏与历史**
-  - 本地优先收藏，服务端尽力同步。
-  - 下载历史本地持久化。
-  - 阅读进度本地保存。
-
-- **多镜像线路**
-  - 内置多个 Z-Library 镜像域名。
-  - 支持并发测速、线路选择、自定义域名。
-  - 支持远程镜像 manifest 同步。
-  - 支持 Cloudflare 拦截提示与一键切换线路。
-
-- **隐私与安全**
-  - 账号凭证使用 HarmonyOS HUKS AES-256-GCM 加密。
-  - 数据主要保存在本地 preferences 中。
-  - 不接入第三方统计、广告、推送、崩溃上报或埋点 SDK。
-
-- **响应式界面**
-  - 适配手机、折叠屏、平板和大屏设备。
-  - 小屏使用底部导航，大屏可自动切换侧边栏导航。
-  - 支持浅色、深色、跟随系统主题。
-  - 支持简体中文和 English。
+- **图书浏览**：首页推荐 / 热门 / 近期上传，支持内容语言偏好。
+- **高级搜索**：关键词 + 语言 / 排序 / 格式 / 出版年份筛选，分页浏览。
+- **书籍详情**：封面、作者、出版信息、简介、相似书籍推荐，收藏 / 在线阅读 / 下载。
+- **在线阅读**：ArkWeb 加载阅读页，自动注入登录 Cookie，进度记忆、字体切换、全屏。
+- **下载管理**：流式下载、进度与速度展示、历史记录，打开 / 分享 / 失败自动换镜像。
+- **收藏与历史**：本地优先收藏，服务端尽力同步；下载历史与阅读进度本地持久化。
+- **多镜像线路**：内置多镜像 + 并发测速 + 自定义域名 + 远程 manifest 同步 + Cloudflare 拦截一键换线。
+- **隐私与安全**：HUKS AES‑256‑GCM 加密凭证，数据本地优先，不接入第三方统计 / 广告 / 推送 / 崩溃上报。
+- **响应式界面**：适配手机 / 折叠屏 / 平板 / 大屏，小屏底部导航、大屏侧边栏；浅色 / 深色 / 跟随系统；中英双语。
 
 ## 安装
 
-请前往 GitHub Releases 下载最新构建产物：
-
-- `*.app`：HarmonyOS 应用包。
-- `*.hap`：Entry 模块安装包，如 Release 中同时提供。
-
-安装方式取决于你的设备、系统版本、签名与调试权限。普通用户建议优先下载 Release 中的 signed app 包。
+前往 GitHub Releases 下载最新构建产物（`*.app` 应用包 / `*.hap` Entry 安装包）。安装方式取决于设备、系统版本与签名权限，普通用户建议优先下载 Release 中的 signed app 包。
 
 ## 构建
 
 ### 环境要求
 
-- DevEco Studio
-- HarmonyOS SDK / ArkTS 工具链
+- DevEco Studio，或 HarmonyOS Command Line Tools
+- HarmonyOS SDK / ArkTS 工具链（API 24 / 6.1.0）
 - ohpm / hvigor 构建环境
 - 可用的 HarmonyOS 应用签名配置
 
-### 本地构建
+### 命令行构建
 
 ```bash
 ohpm install
+
+# 指向本机 SDK（command-line-tools 内）
+set DEVECO_SDK_HOME=D:\Huawei\command-line-tools\sdk   # Windows
+hvigorw assembleHap --mode module -p product=default -p buildMode=debug
 ```
 
-然后使用 DevEco Studio 打开项目，执行同步与构建：
-
-- Build HAP(s)
-- Build APP(s)
-
-签名配置通常依赖本地文件，例如 `build-profile.signing.local.json5`。该类文件包含证书路径和密码，已被 `.gitignore` 排除，**请勿提交到仓库**。
+> **签名说明**：仓库中提交的 `build-profile.json5` 的 `signingConfigs` 为空数组，**不含任何证书路径与密码**。
+> 本地构建请在 DevEco Studio 的 *File > Project Structure > Signing Configs* 配置签名；
+> 为避免本地签名信息被提交，可对该文件执行 `git update-index --skip-worktree build-profile.json5`。
 
 ## 项目结构
 
 ```text
 hlib/
-├── AppScope/                 # 应用级配置
-├── docs/                     # 项目文档与隐私政策
-├── entry/
-│   ├── src/main/ets/
-│   │   ├── api/              # Z-Library API、HTTP 客户端、镜像管理
-│   │   ├── components/       # 通用 UI 组件
-│   │   ├── entryability/     # 主 Ability
-│   │   ├── entrybackupability/
-│   │   ├── model/            # Book、User、DownloadTask 等模型
-│   │   ├── pages/            # 页面级组件
-│   │   ├── storage/          # 本地持久化封装
-│   │   ├── tabs/             # 首页、搜索、收藏、下载 Tab
-│   │   ├── theme/            # 主题 token
-│   │   └── utils/            # 路由、日志、加密、国际化、URL 工具等
-│   └── src/main/resources/   # 字符串、颜色、图标、profile 配置
-└── build-profile.json5       # 工程构建配置
+├── AppScope/                     # 应用级配置
+├── docs/                         # 项目文档、隐私政策、Logo
+└── entry/src/main/
+    ├── cpp/                      # NAPI 脚手架（当前未参与业务）
+    ├── ets/
+    │   ├── api/                  # 网络层
+    │   │   ├── HttpClient        #   传输底座：重试 / 漂移 / Cookie / 语言
+    │   │   ├── ZLibraryClient    #   /eapi/* 业务接口
+    │   │   ├── CookieJar         #   Cookie 容器 + set-cookie 解析（自 HttpClient 拆出）
+    │   │   ├── CloudflareDetector#   CF 拦截识别（自 HttpClient 拆出）
+    │   │   ├── DomainFailover    #   域名漂移接口 + AppStorageDomainFailover 适配器
+    │   │   ├── ApiTypes / Domains / DomainManifest / SearchFilters
+    │   ├── components/           # 通用 UI 组件与对话框
+    │   ├── entryability/         # EntryAbility 主入口
+    │   ├── entrybackupability/   # 备份扩展
+    │   ├── model/                # Book / User / DownloadTask / DomainTestResult
+    │   ├── pages/                # 页面级路由组件（RootPage 承载 Navigation）
+    │   ├── storage/              # PreferencesStore / AuthStore / Favorites / History / ...
+    │   ├── tabs/                 # 首页 / 搜索 / 收藏 / 下载 Tab
+    │   ├── theme/                # AppColors / AppTextStyles
+    │   ├── utils/                # Logger / SecretStore / I18n / Layout / AppRouter
+    │   │                         #   Redact(日志脱敏) / Format(格式化) / UrlUtils / DohResolver / ...
+    │   └── viewmodel/            # AuthVM / HomeVM / SearchVM / BookDetailVM / FavoritesVM / SpeedTestVM / DownloadVM
+    │       └── download/         # DownloadVM 拆分：
+    │                             #   FileTypes / FileValidator / DownloadPaths
+    │                             #   DownloadUrlResolver / DownloadRepository
+    └── resources/                # 字符串、颜色、float、图标、profile
 ```
 
 ## 架构概览
@@ -122,55 +111,28 @@ hlib/
 ArkUI Pages / Tabs / Components
         |
         v
-ViewModel 层
+ViewModel 层（AuthVM / HomeVM / DownloadVM ...）
         |
-        +--> ZLibraryClient
-        |        |
-        |        v
-        |   HttpClient
-        |        |
-        |        v
-        |   Z-Library 镜像 /eapi/*
+        +--> ZLibraryClient ──> HttpClient ──> Z-Library 镜像 /eapi/*
+        |                          |
+        |                          +── CookieJar / CloudflareDetector / RetryPolicy
+        |                          +── DomainFailover（注入，解耦 AppStorage）
         |
-        +--> Store 层
-                 |
-                 v
-        AppStorage / PreferencesStore / HUKS SecretStore
+        +--> Store 层 ──> AppStorage / PreferencesStore / HUKS SecretStore
 ```
 
 ### 关键模块
 
-- `EntryAbility`
-  - 初始化 preferences、HUKS、错误日志、镜像 manifest、主题、语言、登录态与窗口布局。
-
-- `SplashPage`
-  - 处理隐私同意、镜像测速、远程 manifest 刷新、登录态恢复和启动跳转。
-
-- `HttpClient`
-  - 统一管理域名、Cookie、代理、语言偏好、User-Agent、重试、Cloudflare 检测和自动换线。
-
-- `ZLibraryClient`
-  - 封装 `/eapi/*` 业务接口，包括登录、搜索、详情、相似书籍、收藏、推荐等。
-
-- `DownloadVM`
-  - 负责下载链接解析、流式落盘、进度更新、文件校验、历史记录、打开与分享。
-
-- `AuthStore` / `SecretStore`
-  - 使用 HUKS AES-GCM 加密保存 `remix_userid`、`remix_userkey` 和密码等敏感凭证。
+- **EntryAbility**：初始化 preferences、HUKS、错误日志、镜像 manifest、主题、语言、登录态、窗口布局，并注入 `AppStorageDomainFailover`。
+- **HttpClient**：统一域名 / Cookie / 代理 / 语言 / UA / 重试 / Cloudflare 检测；自动换线逻辑通过 `DomainFailover` 接口注入，传输层不再直接依赖 AppStorage。
+- **ZLibraryClient**：封装 `/eapi/*`（登录、搜索、详情、相似、收藏、推荐等）。
+- **DownloadVM + download/**：下载链接解析、流式落盘、进度、魔术字节校验、镜像漂移、打开 / 分享；职责拆分为 `DownloadUrlResolver` / `FileValidator` / `DownloadPaths` / `FileTypes` / `DownloadRepository`。
+- **AuthStore / SecretStore**：用 HUKS AES‑GCM 加密保存 `remix_userid` / `remix_userkey` 及密码等敏感凭证。
+- **Redact**：URL / Cookie / Header 日志脱敏，防止凭证经 hilog 泄漏。
 
 ## 隐私说明
 
-海阅尽量减少数据收集和外部依赖：
-
-- 不内置第三方统计 SDK。
-- 不内置广告 SDK。
-- 不上传本地收藏、下载历史、阅读进度到开发者服务器。
-- 登录凭证仅保存在本机，并通过 HUKS 加密。
-- 网络请求直接发往用户选择的镜像站点。
-
-完整隐私政策请查看：
-
-- [docs/privacy.md](docs/privacy.md)
+海阅尽量减少数据收集与外部依赖：不内置第三方统计 / 广告 SDK；不上传本地收藏、下载历史、阅读进度；登录凭证仅保存在本机并经 HUKS 加密；网络请求直接发往用户选择的镜像站点。完整隐私政策见 [docs/privacy.md](docs/privacy.md)。
 
 ## 免责声明
 
@@ -178,13 +140,15 @@ ViewModel 层
 2. 本项目不存储、不分发、不审查任何书籍内容。
 3. 所有内容均来自用户选择访问的第三方镜像站点。
 4. 用户应自行确认使用行为符合所在地区的法律法规。
-5. 镜像站点的可达性、内容合法性和安全性由对应站点负责。
+5. 镜像站点的可达性、内容合法性与安全性由对应站点负责。
 6. 本项目以“现状”提供，不对稳定性、适用性或可用性作任何明示或默示担保。
 
 ## 许可证
 
-MIT License
+[MIT License](LICENSE)
 
 ---
 
-© 2026 海阅 HLib
+<div align="center">
+© 2026 海阅 HLib · Made for HarmonyOS
+</div>
