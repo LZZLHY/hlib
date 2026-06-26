@@ -112,6 +112,7 @@ export default class EntryAbility extends UIAbility {
           ? info.versionName
           : '1.0.0';
         AppStorage.setOrCreate<string>(AppStorageKeys.APP_VERSION, ver);
+        AppStorage.setOrCreate<string>(AppStorageKeys.BUNDLE_NAME, info.name);
         Logger.i(TAG, `app version: ${ver}`);
       } catch (e) {
         Logger.w(TAG, `read versionName failed: ${(e as Error).message}`);

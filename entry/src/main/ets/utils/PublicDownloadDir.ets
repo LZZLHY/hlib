@@ -11,6 +11,7 @@
 
 import { Environment } from '@kit.CoreFileKit';
 import { abilityAccessCtrl, common, Permissions } from '@kit.AbilityKit';
+import { AppStorageKeys } from '../storage/AppStorageKeys';
 import { Logger } from './Logger';
 
 const TAG: string = 'PublicDownloadDir';
@@ -43,15 +44,21 @@ export class PublicDownloadDir {
   }
 
   /**
-   * 解析公共下载目录的可写路径。失败（不支持 / 未授权）返回空串，调用方应回退沙箱。
+   * 解析公共下载目录下「以包名命名的应用专属子目录」可写路径，即 `<公共Download>/<bundleName>`。
+   * 系统据此把该子目录归属到本应用，用户在文件管理中可见。
+   * 失败（不支持 / 未授权 / 取不到路径）返回空串，调用方应回退沙箱。
    */
   static resolveDir(): string {
     if (!PublicDownloadDir.isSupported()) {
       return '';
     }
     try {
-      const dir: string = Environment.getUserDownloadDir();
-      return dir !== undefined && dir !== null ? dir : '';
+      const base: string = Environment.getUserDownloadDir();
+      if (base === undefined || base === null || base.length === 0) {
+        return '';
+      }
+      const bundle: string = AppStorage.get<string>(AppStorageKeys.BUNDLE_NAME) ?? '';
+      return bundle.length > 0 ? `${base}/${bundle}` : base;
     } catch (e) {
       Logger.w(TAG, `getUserDownloadDir failed: ${(e as Error).message}`);
       return '';

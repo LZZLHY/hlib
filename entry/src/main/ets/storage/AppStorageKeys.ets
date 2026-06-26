@@ -32,6 +32,8 @@ export class AppStorageKeys {
   static readonly SPEED_LAST_TS: string    = 'state_speedLastTs';
   /** 应用版本号（versionName），EntryAbility 启动时通过 bundleManager 读取写入。 */
   static readonly APP_VERSION: string      = 'state_appVersion';
+  /** 应用包名（bundleName），用于公共下载目录的应用专属子目录。 */
+  static readonly BUNDLE_NAME: string      = 'state_bundleName';
 
   // ── 检查更新（自动静默检查写入；UI 用 @StorageProp 订阅显示红点） ──
   /** 是否有可用新版本（自动检查结果，含缓存回灌）。 */
