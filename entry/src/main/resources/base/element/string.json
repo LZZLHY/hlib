@@ -413,6 +413,7 @@
     { "name": "privacy_consent_decline",      "value": "不同意并退出" },
 
     { "name": "settings_check_update",        "value": "检查更新" },
+    { "name": "settings_about_github",        "value": "GitHub 开源仓库" },
     { "name": "update_checking",              "value": "正在检查更新…" },
     { "name": "update_latest",                "value": "已是最新版本" },
     { "name": "update_found_fmt",             "value": "发现新版本 %s" },

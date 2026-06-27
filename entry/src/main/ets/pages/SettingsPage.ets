@@ -9,7 +9,7 @@
  *   关于：版本号
  */
 
-import { ConfigurationConstant } from '@kit.AbilityKit';
+import { ConfigurationConstant, Want } from '@kit.AbilityKit';
 import { promptAction } from '@kit.ArkUI';
 import { common } from '@kit.AbilityKit';
 import { i18n } from '@kit.LocalizationKit';
@@ -316,6 +316,18 @@ export struct SettingsPage {
 
   private goHistory(): void {
     AppRouter.push(Routes.HISTORY);
+  }
+
+  /** 打开 GitHub 开源仓库页（系统浏览器）。 */
+  private onOpenGithub(): void {
+    const ctx: common.UIAbilityContext = this.getUIContext().getHostContext() as common.UIAbilityContext;
+    if (ctx === undefined || ctx === null) {
+      return;
+    }
+    const want: Want = { action: 'ohos.want.action.viewData', uri: 'https://github.com/LZZLHY/hlib' };
+    ctx.startAbility(want).catch((e: Object): void => {
+      Logger.w(TAG, `open github failed: ${(e as Error).message}`);
+    });
   }
 
   /** 检查更新：拉 update.json 比对 versionCode；有新版弹窗，否则更新副文案。 */
@@ -1085,6 +1097,20 @@ export struct SettingsPage {
       .width('100%')
       .padding({ left: AppSpace.s16, right: AppSpace.s16, top: 14, bottom: 14 })
       .onClick((): void => this.onCheckUpdate());
+
+      Divider().color(AppColors.divider).strokeWidth(0.5).margin({ left: AppSpace.s16 });
+
+      // GitHub 开源仓库
+      Row() {
+        Text($r('app.string.settings_about_github'))
+          .fontSize(AppFontSize.body)
+          .fontColor(AppColors.textPrimary)
+          .layoutWeight(1);
+        Image($r('app.media.ic_chevron_right')).width(16).height(16);
+      }
+      .width('100%')
+      .padding({ left: AppSpace.s16, right: AppSpace.s16, top: 14, bottom: 14 })
+      .onClick((): void => this.onOpenGithub());
     }
     .width('100%')
     .backgroundColor(AppColors.surface)

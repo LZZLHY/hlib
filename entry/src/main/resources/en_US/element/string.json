@@ -413,6 +413,7 @@
     { "name": "privacy_consent_decline",      "value": "Decline & Exit" },
 
     { "name": "settings_check_update",        "value": "Check for updates" },
+    { "name": "settings_about_github",        "value": "GitHub repository" },
     { "name": "update_checking",              "value": "Checking for updates…" },
     { "name": "update_latest",                "value": "You're on the latest version" },
     { "name": "update_found_fmt",             "value": "New version %s available" },
